@@ -1,0 +1,929 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development Environment and Tools — Interactive Notes (Missing Semester 2026, Lecture 3)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ee; --paper:#fffdf8; --ink:#1c2321; --muted:#5d6763; --line:#e3ded2;
+  --green:#1f7a55; --green-soft:#e3f2ea; --amber:#c97a12; --amber-soft:#fbefd9;
+  --blue:#2f5f9e; --blue-soft:#e4ecf7; --red:#b4443a; --red-soft:#f8e4e1;
+  --term:#12171a; --term-ink:#d7e2dc; --term-green:#6fdc9d; --term-amber:#f2b55a; --term-blue:#7fb3ff;
+  --mono:'JetBrains Mono','DejaVu Sans Mono',ui-monospace,monospace;
+  --sans:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.62 var(--sans);-webkit-font-smoothing:antialiased}
+code,kbd,pre{font-family:var(--mono)}
+code{background:#ece8dc;padding:.08em .38em;border-radius:5px;font-size:.88em}
+kbd{background:#fff;border:1px solid #cfc8b8;border-bottom-width:2px;border-radius:5px;padding:.05em .4em;font-size:.82em}
+a{color:var(--blue)}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--green),var(--amber));width:0;z-index:50}
+
+/* layout */
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;max-width:1180px;margin:0 auto;padding:0 24px 80px}
+nav.toc{position:sticky;top:20px;align-self:start;margin-top:28px;font-size:14px;max-height:calc(100vh - 40px);overflow:auto}
+nav.toc h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+nav.toc a{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:8px;color:var(--ink);text-decoration:none;border-left:2px solid transparent}
+nav.toc a span{font-family:var(--mono);font-size:11px;color:var(--muted);width:18px}
+nav.toc a:hover{background:#ece8dc}
+nav.toc a.active{background:var(--green-soft);border-left-color:var(--green);font-weight:600}
+main{min-width:0}
+
+/* hero */
+.hero{background:var(--term);color:var(--term-ink);border-radius:0 0 22px 22px;padding:42px 44px 38px;margin-bottom:34px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(111,220,157,.18),transparent 70%)}
+.hero .kicker{font-family:var(--mono);color:var(--term-green);font-size:13px;letter-spacing:.04em}
+.hero h1{font-size:44px;line-height:1.08;margin:10px 0 12px;color:#fff;letter-spacing:-.02em}
+.hero p{max-width:640px;color:#b7c4be;margin:0}
+.hero .typed{font-family:var(--mono);margin-top:22px;font-size:15px;color:var(--term-ink)}
+.hero .typed b{color:var(--term-green);font-weight:400}
+.cursor{display:inline-block;width:9px;height:17px;background:var(--term-green);vertical-align:-3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.meta span{font-size:12px;border:1px solid #2f3a37;border-radius:99px;padding:4px 11px;color:#9fb0a9}
+
+/* sections */
+section{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:30px 34px;margin-bottom:26px;scroll-margin-top:16px}
+section h2{display:flex;align-items:center;gap:12px;font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+section h2 .num{font-family:var(--mono);font-size:13px;background:var(--ink);color:#fff;border-radius:7px;padding:3px 8px}
+section .lede{color:var(--muted);margin:0 0 18px}
+h3{font-size:18px;margin:26px 0 8px}
+p{margin:0 0 12px}
+
+/* callouts */
+.callout{display:flex;gap:12px;border-radius:12px;padding:13px 16px;margin:14px 0;font-size:15px}
+.callout .ic{font-size:18px;line-height:1.4}
+.callout.tip{background:var(--green-soft)}
+.callout.warn{background:var(--amber-soft)}
+.callout.info{background:var(--blue-soft)}
+.callout.bad{background:var(--red-soft)}
+.callout b{font-weight:700}
+
+/* terminal-styled code */
+.term{background:var(--term);color:var(--term-ink);border-radius:12px;margin:12px 0;position:relative;overflow:hidden;font-size:13.5px}
+.term .bar{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#1b2225}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:#3a4549;display:block}
+.term .bar i:nth-child(1){background:#e0625a}.term .bar i:nth-child(2){background:#e2b04a}.term .bar i:nth-child(3){background:#5cc370}
+.term .bar em{font-style:normal;font-family:var(--mono);font-size:11px;color:#7d8c87;margin-left:8px}
+.term pre{margin:0;padding:14px 16px;overflow-x:auto;white-space:pre;line-height:1.55}
+.term .p{color:var(--term-green)} .term .o{color:#9aa9a3} .term .c{color:#6f807a;font-style:italic} .term .k{color:var(--term-amber)} .term .s{color:var(--term-blue)}
+.copy{position:absolute;top:6px;right:8px;background:#28322f;color:#cfe0d8;border:0;border-radius:7px;font:12px var(--sans);padding:4px 10px;cursor:pointer}
+.copy:hover{background:#34423d}
+
+/* grids & cards */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 6px;font-size:15px}
+.card p{font-size:14.5px;color:#39423f;margin:0}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:99px;padding:2px 9px;margin-bottom:8px}
+.pill.g{background:var(--green-soft);color:var(--green)} .pill.a{background:var(--amber-soft);color:var(--amber)} .pill.b{background:var(--blue-soft);color:var(--blue)} .pill.r{background:var(--red-soft);color:var(--red)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;font:500 14px var(--sans);cursor:pointer;color:var(--ink)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabpanel{display:none;margin-top:12px}
+.tabpanel.on{display:block}
+
+/* prompt anatomy */
+.anatomy{background:var(--term);border-radius:12px;padding:26px 20px 18px;text-align:center}
+.anatomy .line{font-family:var(--mono);font-size:30px;color:var(--term-ink);letter-spacing:.02em}
+.anatomy .seg{cursor:pointer;border-radius:6px;padding:0 3px;transition:.15s;border-bottom:2px dashed transparent}
+.anatomy .seg:hover,.anatomy .seg.on{background:#24302c}
+.anatomy .seg[data-k="host"]{color:var(--term-blue);border-bottom-color:var(--term-blue)}
+.anatomy .seg[data-k="cwd"]{color:var(--term-green);border-bottom-color:var(--term-green)}
+.anatomy .seg[data-k="dollar"]{color:var(--term-amber);border-bottom-color:var(--term-amber)}
+.anatomy .explain{margin-top:16px;color:#c9d6d0;font-size:14.5px;min-height:46px}
+.anatomy .hint{color:#7d8c87;font-size:12px;margin-top:6px}
+
+/* widgets */
+.widget{border:1.5px solid var(--green);border-radius:14px;padding:18px 20px;margin:18px 0;background:linear-gradient(180deg,#f3faf6,#fff)}
+.widget .wt{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.widget label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+.widget input[type=text]{width:100%;font:14px var(--mono);padding:9px 11px;border:1px solid #cfc8b8;border-radius:9px;background:#fff}
+.widget .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.result{margin-top:12px;font-family:var(--mono);font-size:14px;background:var(--term);color:var(--term-ink);border-radius:10px;padding:12px 14px}
+.result .step{color:#8fa09a}
+.result .final{color:var(--term-green);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{font:12px var(--mono);background:#fff;border:1px solid #cfc8b8;border-radius:7px;padding:3px 8px;cursor:pointer}
+.chips button:hover{border-color:var(--green)}
+
+/* PATH lookup */
+.pathdirs{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.pathdirs div{font-family:var(--mono);font-size:13.5px;padding:7px 12px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:.25s;display:flex;justify-content:space-between}
+.pathdirs div.scan{background:var(--amber-soft);border-color:var(--amber)}
+.pathdirs div.miss{opacity:.5}
+.pathdirs div.hit{background:var(--green-soft);border-color:var(--green);font-weight:600}
+
+/* tools */
+.toolgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:14px}
+.tool{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;transition:.15s}
+.tool:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.tool .nm{font-family:var(--mono);font-weight:600;font-size:17px}
+.tool .what{font-size:14px;color:#39423f;margin:4px 0 8px}
+.tool code{display:block;background:var(--term);color:var(--term-ink);padding:7px 9px;border-radius:7px;font-size:12px;white-space:pre-wrap;word-break:break-word}
+.tool .alt{font-size:12px;color:var(--muted);margin-top:8px}
+.tool.hide{display:none}
+
+/* sed anatomy */
+.sed{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;font-family:var(--mono);font-size:22px;margin:16px 0 8px}
+.sed span{padding:6px 8px;border-radius:7px;cursor:default;position:relative}
+.sedlegend{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;font-size:13.5px}
+.sedlegend div{border-radius:9px;padding:8px 11px}
+
+/* pipeline stepper */
+.pipe{display:flex;flex-direction:column;gap:0}
+.stage{display:grid;grid-template-columns:40px 1fr;gap:12px;cursor:pointer}
+.stage .dot{display:flex;flex-direction:column;align-items:center}
+.stage .dot b{width:30px;height:30px;border-radius:50%;background:#e7e2d6;color:var(--muted);display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);transition:.2s}
+.stage .dot i{flex:1;width:2px;background:#e7e2d6;min-height:14px}
+.stage:last-child .dot i{display:none}
+.stage .body{padding-bottom:14px}
+.stage .cmd{font-family:var(--mono);font-size:13.5px;background:#efebe0;border-radius:8px;padding:7px 10px;display:inline-block;word-break:break-all}
+.stage .why{font-size:14.5px;color:#39423f;margin-top:6px;display:none}
+.stage .out{display:none;margin-top:8px}
+.stage.on .dot b{background:var(--green);color:#fff}
+.stage.on .dot i{background:var(--green)}
+.stage.on .cmd{background:var(--green-soft)}
+.stage.cur .why,.stage.cur .out{display:block}
+.pipectl{display:flex;gap:8px;margin:6px 0 16px}
+.btn{white-space:nowrap;border:0;background:var(--ink);color:#fff;border-radius:9px;padding:8px 14px;font:600 13.5px var(--sans);cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid #cfc8b8}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* redirect table */
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td code{white-space:nowrap}
+
+/* flags */
+.flags{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.flag{border-radius:12px;padding:14px 16px;background:#fff;border:1px solid var(--line);cursor:pointer;transition:.15s}
+.flag .f{font:600 20px var(--mono);color:var(--amber)}
+.flag .s{font-size:13px;color:var(--muted)}
+.flag .d{display:none;font-size:14px;margin-top:8px}
+.flag.on{border-color:var(--amber);background:var(--amber-soft)}
+.flag.on .d{display:block}
+
+/* sandbox terminal */
+.sandbox{background:var(--term);border-radius:14px;overflow:hidden}
+.sandbox .screen{height:360px;overflow-y:auto;padding:14px 16px;font:13.5px/1.55 var(--mono);color:var(--term-ink);cursor:text}
+.sandbox .screen .ln{white-space:pre-wrap;word-break:break-word}
+.sandbox .inrow{display:flex;gap:8px;align-items:center}
+.sandbox input{flex:1;background:transparent;border:0;outline:0;color:#fff;font:13.5px var(--mono);padding:0}
+.sandbox .p{color:var(--term-green)} .sandbox .e{color:#ff8f86} .sandbox .d{color:var(--term-blue)} .sandbox .x{color:var(--term-amber)} .sandbox .m{color:#80908a}
+
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:#fff}
+.q .qt{font-weight:600;margin-bottom:10px}
+.q .opts{display:grid;gap:7px}
+.q button.opt{text-align:left;border:1px solid #d8d2c4;background:#fdfcf8;border-radius:9px;padding:9px 12px;font:14.5px var(--sans);cursor:pointer;color:var(--ink)}
+.q button.opt:hover{border-color:var(--green)}
+.q button.opt.right{background:var(--green-soft);border-color:var(--green)}
+.q button.opt.wrong{background:var(--red-soft);border-color:var(--red)}
+.q .ex{display:none;font-size:14px;margin-top:10px;color:#39423f;border-left:3px solid var(--green);padding-left:10px}
+.q.done .ex{display:block}
+.score{font-weight:700;font-family:var(--mono);color:var(--green)}
+
+/* exercises */
+.exgroup h4{margin:18px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ex-item{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.ex-item input{width:18px;height:18px;margin-top:3px;accent-color:var(--green)}
+.ex-item .t{font-size:15px}
+.ex-item.checked .t{color:var(--muted);text-decoration:line-through;text-decoration-color:#b9b2a2}
+.ex-item .hintbtn{font-size:12.5px;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;margin-top:4px}
+.ex-item .h{display:none;font-size:13.5px;background:var(--blue-soft);border-radius:8px;padding:7px 10px;margin-top:6px}
+.ex-item.showhint .h{display:block}
+.exbar{height:8px;background:#ebe6da;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.exbar div{height:100%;background:var(--green);width:0;transition:.3s}
+
+/* cheat sheet */
+.cheat{display:grid;grid-template-columns:repeat(2,1fr);gap:0 26px}
+.cheat .r{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.cheat .r code{background:none;padding:0;font-weight:600;color:var(--green);font-size:13px}
+.cheat h4{grid-column:1/-1;margin:14px 0 2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+
+.linkbanner{border:1.5px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 16px;margin:0 0 14px;font-size:13px}
+.linkbanner a{color:var(--green)!important;font-family:var(--mono);font-weight:600;text-decoration:underline!important}
+.linkbanner .lb-ic{float:left;margin-right:12px;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;text-align:center;line-height:28px;font-size:12px}
+.topnav{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:10px 2px 0}
+.topnav a{color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 12px;background:#fff}
+.topnav a:hover{color:var(--ink);border-color:var(--green)}
+footer{font-size:13px;color:var(--muted);text-align:center;padding:10px}
+.print-only{display:none}
+.ptyped{display:none}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr} nav.toc{display:none}
+  .g2,.g3,.flags,.cheat{grid-template-columns:1fr}
+  .hero{padding:30px 22px}.hero h1{font-size:32px}
+  section{padding:22px 18px}
+  .widget .row{grid-template-columns:1fr}
+}
+
+/* ---------- print / PDF ---------- */
+@page{size:A4;margin:14mm 12mm}
+@media print{
+  body{background:#fff;font-size:12.5px}
+  .progress,nav.toc,.copy,.no-print,.pipectl,.hintbtn,.tabs{display:none!important}
+  .print-only{display:block}
+  .print-only.grid{display:grid}
+  .wrap{display:block;padding:0;max-width:none}
+  .hero{border-radius:14px;padding:28px 30px;margin-bottom:16px}
+  .hero h1{font-size:34px}
+  section{border:1px solid #ddd6c6;padding:18px 22px;margin-bottom:14px;break-inside:auto}
+  h2,h3,h4,.lede{break-after:avoid}
+  .card,.tool,.q,.callout,.term,.flag,.stage,.ex-item,.widget,.anatomy{break-inside:avoid}
+  .tabpanel{display:block!important;margin-top:10px}
+  .tabpanel::before{content:attr(data-label);display:block;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .stage .why,.stage .out{display:block!important}
+  .stage .dot b{background:var(--green)!important;color:#fff!important}
+  .flag .d{display:block!important}
+  .q .ex{display:block!important}
+  .q .opts button[data-right]{background:var(--green-soft);border-color:var(--green)}
+  .ex-item .h{display:block!important}
+  .sandbox{display:none!important}
+  .toolgrid{grid-template-columns:repeat(3,1fr)}
+  .tool:hover{transform:none;box-shadow:none}
+  .anatomy .explain{display:none}
+  .hero .cursor,#typed{display:none}
+  .ptyped{display:inline}
+  .term pre{white-space:pre-wrap;word-break:break-all}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  .flags{grid-template-columns:repeat(3,1fr)}
+  .cheat{grid-template-columns:repeat(2,1fr)}
+  a{color:var(--ink);text-decoration:none}
+}
+
+/* ---- lecture 3 additions ---- */
+.modes{display:grid;grid-template-columns:1fr 1.1fr 1fr;grid-template-rows:auto auto auto;gap:12px;align-items:center;margin:10px 0}
+.mode{border-radius:12px;padding:12px 14px;border:1.5px solid var(--line);background:#fff;cursor:pointer;transition:.15s;text-align:center}
+.mode b{display:block;font-size:15px}.mode span{font:12px var(--mono);color:var(--muted)}
+.mode:hover,.mode.on{border-color:var(--green);background:var(--green-soft)}
+.p11{grid-column:1;grid-row:1}.p31{grid-column:3;grid-row:1}.p13{grid-column:1;grid-row:3}.p33{grid-column:3;grid-row:3}.p12{grid-column:1;grid-row:2}.p32{grid-column:3;grid-row:2}
+.mhint{text-align:center;color:var(--muted);font-size:13px}
+.mode.normal{grid-column:2;grid-row:2;background:var(--term);color:#fff;border-color:var(--term)}
+.mode.normal span{color:var(--term-green)}.mode.normal.on{outline:3px solid var(--green)}
+.modeinfo{border-radius:12px;background:var(--green-soft);padding:12px 16px;font-size:14.5px;min-height:48px}
+.gram{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-end}
+.gram label{font-size:12px;color:var(--muted);display:block;margin-bottom:3px}
+.gram select{font:14px var(--mono);padding:7px 9px;border-radius:9px;border:1px solid #cfc8b8;background:#fff;min-width:120px}
+.gramout{margin-top:14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+.gramout .keys2{font:700 30px var(--mono);background:var(--term);color:var(--term-green);border-radius:10px;padding:6px 16px;letter-spacing:.06em}
+.gramout .mean{font-size:15px;flex:1;min-width:220px}
+.gramout .bad{color:var(--red)}
+.vimwrap{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px}
+.vim{background:#101517;border-radius:12px;overflow:hidden;outline:none;border:2px solid #2a3533;cursor:text}
+.vim:focus{border-color:var(--green)}
+.vim .buf{padding:10px 0;font:13.5px/1.6 var(--mono);color:var(--term-ink);min-height:300px;white-space:pre}
+.vim .ln{display:flex}.vim .ln i{font-style:normal;width:38px;text-align:right;padding-right:12px;color:#4d5b57;flex:none;user-select:none}
+.vim .ln.cur i{color:var(--term-amber)}
+.vim .cur-blk{background:var(--term-green);color:#0b1210}
+.vim .cur-bar{box-shadow:inset 2px 0 0 var(--term-green)}
+.vim .sel{background:#2f5f9e;color:#fff}
+.vim .st{display:flex;justify-content:space-between;background:#1b2225;color:#9fb0a9;font:12.5px var(--mono);padding:5px 12px}
+.vim .st .md{font-weight:700;color:var(--term-green)}
+.vim .st .md.INSERT{color:var(--term-amber)}.vim .st .md.VISUAL,.vim .st .md.V-LINE{color:var(--term-blue)}
+.vim .cmdl{font:13px var(--mono);color:#fff;padding:4px 12px;min-height:24px;background:#101517;border-top:1px solid #222b29}
+.vim .hintover{padding:8px 12px;font:12px var(--sans);color:#8fa09a;background:#141b1d}
+.side h4{margin:0 0 8px;font-size:14px}
+.steps{list-style:none;padding:0;margin:0;font-size:13.5px}
+.steps li{padding:6px 0;border-bottom:1px dashed var(--line)}
+.steps li.grp{font-weight:700;border:0;padding-top:12px;color:var(--amber)}
+.steps kbd{font-size:12px}
+.checks{margin-top:10px;font-size:13.5px}
+.checks div{padding:3px 0}
+.keylog{font:12px var(--mono);color:var(--muted);margin-top:6px;min-height:18px;word-break:break-all}
+.lsp{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.ai-tabs .tabpanel .term{margin-top:8px}
+.ghosttxt{opacity:.55}
+@media (max-width:900px){.modes{grid-template-columns:1fr 1fr}.modes>*{grid-column:auto!important;grid-row:auto!important}.mode.normal{grid-column:1/-1!important}.mhint{display:none}.vimwrap,.lsp{grid-template-columns:1fr}}
+@media print{.modes{grid-template-columns:1fr 1.1fr 1fr!important}.mhint{display:block!important}.p11{grid-column:1!important;grid-row:1!important}.p31{grid-column:3!important;grid-row:1!important}.p13{grid-column:1!important;grid-row:3!important}.p33{grid-column:3!important;grid-row:3!important}.p12{grid-column:1!important;grid-row:2!important}.p32{grid-column:3!important;grid-row:2!important}.mode.normal{grid-column:2!important;grid-row:2!important}
+  .vim,.side .btn,.keylog,.modeinfo,.gram,.gramout{display:none!important}.vimwrap{grid-template-columns:1fr}.modes{break-inside:avoid}.lsp{grid-template-columns:repeat(3,1fr)}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>Contents</h4>
+    <a href="#ide"><span>01</span>IDEs vs the terminal</a>
+    <a href="#philosophy"><span>02</span>The Vim idea</a>
+    <a href="#modes"><span>03</span>Modal editing</a>
+    <a href="#movement"><span>04</span>Movement (nouns)</a>
+    <a href="#edits"><span>05</span>Edits, counts, modifiers</a>
+    <a href="#simulator"><span>06</span>Vim simulator</a>
+    <a href="#learn"><span>07</span>Learning Vim</a>
+    <a href="#lsp"><span>08</span>Language servers</a>
+    <a href="#ai"><span>09</span>AI-powered development</a>
+    <a href="#ext"><span>10</span>Extensions</a>
+    <a href="#quiz"><span>11</span>Self-check quiz</a>
+    <a href="#exercises"><span>12</span>Exercises</a>
+    <a href="#cheat"><span>13</span>Vim cheat sheet</a>
+  </nav>
+
+<main>
+  <div class="topnav no-print"><a href="index.html">← All notes</a><a href="command-line-env.html">← Lecture 2: Command-line Environment</a></div>
+  <header class="hero" style="margin-top:10px">
+    <div class="kicker">MIT · The Missing Semester of Your CS Education · 2026 · Lecture 3</div>
+    <h1>Development Environment and Tools</h1>
+    <p>Editing text at the speed of thought with Vim, getting real code intelligence from language servers, using AI coding tools well, and the IDE extensions worth knowing.</p>
+    <div class="typed"><b>missing:~$</b> <span id="typed"></span><span class="ptyped">vimtutor</span><span class="cursor"></span></div>
+    <div class="meta"><span>Interactive notes</span><span>~25 min read</span><span>Includes a working Vim simulator + quiz</span></div>
+  </header>
+
+  <div class="print-only linkbanner">
+    <div class="lb-ic">▶</div>
+    <div><b>Interactive version</b> — Vim simulator with the fizz-buzz challenge, mode explorer, command builder &amp; quiz:<br><a href="https://greymatter1005.github.io/missing-semester-notes/development-env.html">https://greymatter1005.github.io/missing-semester-notes/development-env.html</a></div>
+  </div>
+
+  <div class="callout info">
+    <div class="ic">🧰</div>
+    <div><b>What's a development environment?</b> The tools you write software with. At its heart: a text editor, plus syntax highlighting, type checking, formatting and autocomplete. This lecture covers <b>Vim</b>, <b>language servers</b>, <b>AI-powered development</b> and <b>IDE extensions</b>.</div>
+  </div>
+
+  <!-- 01 -->
+  <section id="ide">
+    <h2><span class="num">01</span>IDEs vs terminal workflows</h2>
+    <p class="lede">Two ways to assemble the same capabilities. Learn the basics of both; master at least one.</p>
+    <div class="grid g2">
+      <div class="card"><span class="pill b">IDE</span><h4>e.g. VS Code — everything in one app</h4><p>✅ Easier to learn<br>✅ Better built-in AI integration (e.g. AI autocomplete)<br>➖ Heavier; needs a GUI and installs</p></div>
+      <div class="card"><span class="pill g">Terminal</span><h4>tmux + Vim + Zsh + CLI tools</h4><p>e.g. Ruff (Python linter/formatter), Mypy (type checker)<br>✅ Lightweight<br>✅ Sometimes the only option — no GUI, or you can't install software</p></div>
+    </div>
+    <div class="callout tip"><div class="ic">👉</div><div>No preferred IDE yet? The lecturers recommend starting with <b>VS Code</b>.</div></div>
+  </section>
+
+  <!-- 02 -->
+  <section id="philosophy">
+    <h2><span class="num">02</span>The Vim idea</h2>
+    <p class="lede">Programmers spend most of their time <i>navigating, reading and making small edits</i> — not typing long streams of new text. Vim is optimized for exactly that mix.</p>
+    <div class="grid g3">
+      <div class="card"><h4>🗣 The interface is a language</h4><p>Keystrokes are commands with mnemonic names, and they <b>compose</b> — verbs act on nouns.</p></div>
+      <div class="card"><h4>🖱 No mouse, no arrows</h4><p>Both are too slow. Your hands stay on the home row; editing keeps pace with thinking.</p></div>
+      <div class="card"><h4>🌍 Vim mode is everywhere</h4><p>VS Code (VSCodeVim), Zsh (built-in), even Claude Code have a Vim mode. Learn it once, use it all over.</p></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="modes">
+    <h2><span class="num">03</span>Modal editing</h2>
+    <p class="lede">Vim has different <b>modes</b> for different jobs, and the same key means different things in each. You start in <b>Normal</b> mode and return to it with <kbd>Esc</kbd>. <span class="no-print">Click a mode.</span></p>
+    <div class="modes">
+      <div class="mode p11" data-m="insert"><b>Insert</b><span>i · a · o</span></div>
+      <div class="mode p31" data-m="replace"><b>Replace</b><span>R</span></div>
+      <div class="mode normal on" data-m="normal"><b>Normal</b><span>default · Esc returns here</span></div>
+      <div class="mode p13" data-m="visual"><b>Visual</b><span>v · V (line) · Ctrl-v (block)</span></div>
+      <div class="mode p33" data-m="cmd"><b>Command-line</b><span>:</span></div>
+      <div class="mhint p12">← enter with the key shown</div>
+      <div class="mhint p32"><kbd>Esc</kbd> → back to Normal</div>
+    </div>
+    <div class="modeinfo" id="modeinfo"></div>
+    <table class="print-only">
+      <tr><th>Mode</th><th>For</th><th>Enter with</th><th>What <code>x</code> does</th></tr>
+      <tr><td>Normal</td><td>Moving and editing</td><td><kbd>Esc</kbd></td><td>Deletes the character under the cursor</td></tr>
+      <tr><td>Insert</td><td>Typing text</td><td><code>i</code></td><td>Types the letter x</td></tr>
+      <tr><td>Replace</td><td>Overwriting text</td><td><code>R</code></td><td>Overwrites a character with x</td></tr>
+      <tr><td>Visual</td><td>Selecting text</td><td><code>v</code> / <code>V</code> / <code>Ctrl-v</code></td><td>Deletes the selection</td></tr>
+      <tr><td>Command-line</td><td>Running commands</td><td><code>:</code></td><td>Part of the command you type</td></tr>
+    </table>
+    <div class="callout tip"><div class="ic">⌨️</div><div>You'll press <kbd>Esc</kbd> constantly. Many Vim users remap <b>Caps Lock → Escape</b>.</div></div>
+    <p><b>Minimum survival kit:</b> <code>i</code> to start typing, <kbd>Esc</kbd> to stop. That's enough to edit a file — just not efficiently.</p>
+  </section>
+
+  <!-- 04 -->
+  <section id="movement">
+    <h2><span class="num">04</span>Movement — the “nouns”</h2>
+    <p class="lede">Spend most of your time in Normal mode, moving with these. Each one names a chunk of text.</p>
+    <table>
+      <tr><th>Scope</th><th>Keys</th><th>Meaning</th></tr>
+      <tr><td>Basic</td><td><code>h j k l</code></td><td>left · down · up · right</td></tr>
+      <tr><td>Words</td><td><code>w b e</code></td><td>next word · back to word start · end of word</td></tr>
+      <tr><td>Line</td><td><code>0 ^ $</code></td><td>line start · first non-blank · line end</td></tr>
+      <tr><td>Screen</td><td><code>H M L</code></td><td>top · middle · bottom of screen</td></tr>
+      <tr><td>Scroll</td><td><code>Ctrl-u Ctrl-d</code></td><td>up · down</td></tr>
+      <tr><td>File</td><td><code>gg G</code></td><td>first line · last line</td></tr>
+      <tr><td>Line number</td><td><code>:{n}⏎</code> or <code>{n}G</code></td><td>go to line n</td></tr>
+      <tr><td>Match</td><td><code>%</code></td><td>jump to matching bracket / brace</td></tr>
+      <tr><td>Find on line</td><td><code>f{c} t{c} F{c} T{c}</code></td><td>find / up-to char, forward / backward; <code>;</code> <code>,</code> repeat</td></tr>
+      <tr><td>Search</td><td><code>/{regex}⏎</code></td><td>search; <code>n</code> / <code>N</code> next / previous</td></tr>
+    </table>
+    <p><b>Selecting:</b> enter Visual mode (<code>v</code>, <code>V</code> or <code>Ctrl-v</code>) and use any movement to grow the selection.</p>
+  </section>
+
+  <!-- 05 -->
+  <section id="edits">
+    <h2><span class="num">05</span>Edits (verbs), counts &amp; modifiers</h2>
+    <p class="lede">Editing commands are <b>verbs</b> that act on movement <b>nouns</b>: <code>[count] verb [modifier] noun</code>.</p>
+    <div class="grid g2">
+      <div class="card"><h4>Verbs</h4><p><code>d{motion}</code> delete · <code>c{motion}</code> change (delete + Insert) · <code>y{motion}</code> yank (copy)<br><code>x</code> delete char (= <code>dl</code>) · <code>s</code> substitute char (= <code>cl</code>)<br><code>o</code>/<code>O</code> new line below/above · <code>p</code> paste · <code>u</code> undo · <code>Ctrl-r</code> redo<br><code>~</code> flip case · <code>J</code> join lines</p></div>
+      <div class="card"><h4>Counts &amp; modifiers</h4><p><code>3w</code> 3 words forward · <code>5j</code> 5 lines down · <code>7dw</code> delete 7 words<br><code>i</code> = <b>inside</b>, <code>a</code> = <b>around</b>:<br><code>ci(</code> change inside parentheses · <code>ci[</code> inside brackets · <code>da'</code> delete a quoted string incl. quotes</p></div>
+    </div>
+
+    <div class="widget no-print">
+      <div class="wt">🧱 Build a command</div>
+      <div class="gram">
+        <div><label>Count</label><select id="gC"><option value="">—</option><option>2</option><option>3</option><option>7</option></select></div>
+        <div><label>Verb</label><select id="gV"><option value="">(just move)</option><option value="d">d · delete</option><option value="c">c · change</option><option value="y">y · yank</option></select></div>
+        <div><label>Modifier</label><select id="gM"><option value="">—</option><option value="i">i · inside</option><option value="a">a · around</option></select></div>
+        <div><label>Noun</label><select id="gN">
+          <option value="w">w · word</option><option value="e">e · end of word</option><option value="b">b · back a word</option><option value="$">$ · end of line</option><option value="0">0 · start of line</option><option value="j">j · line below</option><option value="G">G · end of file</option>
+          <option value="(">( · parentheses</option><option value="[">[ · brackets</option><option value="{">{ · braces</option><option value='"'>" · double quotes</option><option value="'">' · single quotes</option></select></div>
+      </div>
+      <div class="gramout"><div class="keys2" id="gK">w</div><div class="mean" id="gMean"></div></div>
+    </div>
+    <table class="print-only">
+      <tr><th>Keys</th><th>Meaning</th></tr>
+      <tr><td><code>dw</code> · <code>d$</code> · <code>d0</code></td><td>delete word · to end of line · to start of line</td></tr>
+      <tr><td><code>cw</code></td><td>change word (delete it, then type)</td></tr>
+      <tr><td><code>7dw</code></td><td>delete 7 words</td></tr>
+      <tr><td><code>ci(</code> · <code>da'</code></td><td>change inside ( ) · delete a '…' string with its quotes</td></tr>
+      <tr><td><code>yy</code> / <code>dd</code> / <code>cc</code></td><td>doubling a verb acts on the whole line</td></tr>
+    </table>
+  </section>
+
+  <!-- 06 -->
+  <section id="simulator">
+    <h2><span class="num">06</span>Vim simulator: fix fizz buzz</h2>
+    <p class="lede">The lecture's broken fizz buzz, in a working mini-Vim. Click the editor, then follow the keystrokes on the right — or improvise. <span class="print-only">(The simulator is in the interactive version; the keystrokes are below.)</span></p>
+    <div class="vimwrap">
+      <div>
+        <div class="vim" id="vim" tabindex="0">
+          <div class="buf" id="vbuf"></div>
+          <div class="st"><span><span class="md" id="vmode">NORMAL</span> <span id="vpend"></span></span><span id="vpos"></span></div>
+          <div class="cmdl" id="vcmd"></div>
+          <div class="hintover" id="vhint">Click here to focus the editor, then type Vim commands.</div>
+        </div>
+        <div class="keylog no-print" id="vlog"></div>
+        <div style="display:flex;gap:8px;margin-top:8px" class="no-print"><button class="btn ghost" id="vReset">Reset file</button><button class="btn" id="vCheck">Check my fix</button></div>
+        <div class="checks" id="vChecks"></div>
+      </div>
+      <div class="side">
+        <h4>The lecture's fix, keystroke by keystroke</h4>
+        <ul class="steps">
+          <li class="grp">1. main() is never called</li>
+          <li><kbd>G</kbd> jump to end of file</li>
+          <li><kbd>o</kbd> open a line below (Insert mode)</li>
+          <li>type <code>if __name__ == "__main__": main()</code></li>
+          <li><kbd>Esc</kbd> back to Normal</li>
+          <li class="grp">2. Starts at 0, not 1</li>
+          <li><kbd>/</kbd><code>range</code><kbd>⏎</kbd> search for “range”</li>
+          <li><kbd>w</kbd><kbd>w</kbd> forward two words</li>
+          <li><kbd>i</kbd> type <code>1, </code> <kbd>Esc</kbd></li>
+          <li><kbd>e</kbd> end of next word, <kbd>a</kbd> type <code> + 1</code> <kbd>Esc</kbd></li>
+          <li class="grp">3. Prints “fizz” for multiples of 5</li>
+          <li><kbd>:</kbd><code>6</code><kbd>⏎</kbd> go to line 6</li>
+          <li><kbd>c</kbd><kbd>i</kbd><kbd>"</kbd> change inside the quotes, type <code>buzz</code></li>
+          <li><kbd>Esc</kbd> back to Normal</li>
+        </ul>
+        <p style="font-size:12.5px;color:var(--muted);margin-top:10px" class="no-print">Like plain Vim, there's no auto-indent: press Tab for 4 spaces. Supported: hjkl w b e 0 ^ $ gg G {n}G % f/t/F/T ; , /search n N · i a I A o O R v V · d c y x s r ~ J p P u Ctrl-r · counts · iw aw i( a( i[ i{ i" i' · :{n} :w :q</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- 07 -->
+  <section id="learn">
+    <h2><span class="num">07</span>Learning Vim</h2>
+    <p class="lede">Learn the fundamentals above, then <b>turn on Vim mode everywhere</b> and use it for real work. Resist the mouse and arrow keys — some editors let you unbind the arrows to force good habits.</p>
+    <div class="grid g3">
+      <div class="card"><h4>vimtutor</h4><p>Built-in tutorial — just run <code>vimtutor</code> in your shell.</p></div>
+      <div class="card"><h4>Vim Adventures</h4><p>A game that teaches Vim.</p></div>
+      <div class="card"><h4>VimGolf</h4><p>Code golf where the language is Vim's interface.</p></div>
+      <div class="card"><h4>Previous Vim lecture</h4><p>The course's older, deeper Vim lecture.</p></div>
+      <div class="card"><h4>Tips &amp; Q&amp;A</h4><p>Vim Tips Wiki · Vim Advent Calendar · Vi/Vim Stack Exchange · Vim Screencasts</p></div>
+      <div class="card"><h4>Book</h4><p><i>Practical Vim</i></p></div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="lsp">
+    <h2><span class="num">08</span>Code intelligence &amp; language servers</h2>
+    <p class="lede">IDE extensions talk to a <b>language server</b> via the Language Server Protocol (LSP) to understand your code's meaning. e.g. VS Code's Python extension uses <b>Pylance</b>; Go uses <b>gopls</b>.</p>
+    <div class="lsp">
+      <div class="card"><h4>⌨️ Code completion</h4><p>Type <code>object.</code> and see its real fields and methods.</p></div>
+      <div class="card"><h4>📖 Inline docs</h4><p>Documentation on hover and in suggestions.</p></div>
+      <div class="card"><h4>🎯 Jump to definition</h4><p>From <code>object.field</code> straight to where <code>field</code> is defined.</p></div>
+      <div class="card"><h4>🔗 Find references</h4><p>The reverse: every place a field or type is used.</p></div>
+      <div class="card"><h4>📦 Import help</h4><p>Organize, remove unused, flag missing imports.</p></div>
+      <div class="card"><h4>✅ Code quality</h4><p>Formatting, linting and type errors as you type (more in the Code Quality lecture).</p></div>
+    </div>
+    <h3>Configuring them</h3>
+    <p>Some languages work out of the box. Others need to know your <b>environment</b> — e.g. point VS Code at your Python environment so the server can see installed packages. Servers also have settings, like turning off static type checking for projects without type annotations.</p>
+  </section>
+
+  <!-- 09 -->
+  <section id="ai">
+    <h2><span class="num">09</span>AI-powered development</h2>
+    <p class="lede">Since GitHub Copilot (Codex, mid-2021), LLMs are everywhere in software engineering. Three form factors:</p>
+    <div class="tabs" data-tabs="ai"><button class="on" data-t="ac">1 · Autocomplete</button><button data-t="ic">2 · Inline chat</button><button data-t="ag">3 · Coding agents</button></div>
+    <div class="tabpanel on" data-group="ai" data-id="ac" data-label="1 · Autocomplete">
+      <p>Suggests code at the cursor as you type. Steer it with names, docstrings and <b>comments</b>.</p>
+      <div class="grid g2">
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:4px">Vague name → vague guess</div>
+<div class="term"><pre><span class="k">def</span> extract(contents: str) -&gt; list[str]:
+<span class="ghosttxt">    lines = contents.splitlines()
+    return [line for line in lines if line.strip()]</span></pre></div></div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:4px">Add a comment → what you meant</div>
+<div class="term"><pre><span class="k">def</span> extract(content: str) -&gt; list[str]:
+    <span class="c"># extract all Markdown links from the content</span>
+<span class="ghosttxt">    import re
+    pattern = r'\[.*?\]\((.*?)\)'
+    return re.findall(pattern, content)</span></pre></div></div>
+      </div>
+      <div class="callout warn"><div class="ic">⚠️</div><div><b>Limit:</b> it only writes at the cursor — so <code>import re</code> lands inside the function instead of at the top of the module. Better still: name it <code>extract_links</code> and write a docstring.</div></div>
+    </div>
+    <div class="tabpanel" data-group="ai" data-id="ic" data-label="2 · Inline chat">
+      <p>Select existing code, then ask for a change. Unlike autocomplete, it can <b>rewrite</b> what's there.</p>
+      <div class="grid g2">
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:4px">Selected code</div>
+<div class="term"><pre><span class="k">import</span> requests
+
+<span class="k">def</span> download_contents(url: str) -&gt; str:
+    response = requests.get(url)
+    <span class="k">return</span> response.text</pre></div></div>
+        <div><div style="font-size:13px;font-weight:600;margin-bottom:4px">Prompt: “use built-in libraries instead”</div>
+<div class="term"><pre><span class="k">from</span> urllib.request <span class="k">import</span> urlopen
+
+<span class="k">def</span> download_contents(url: str) -&gt; str:
+    <span class="k">with</span> urlopen(url) <span class="k">as</span> response:
+        <span class="k">return</span> response.read().decode(<span class="s">'utf-8'</span>)</pre></div></div>
+      </div>
+    </div>
+    <div class="tabpanel" data-group="ai" data-id="ag" data-label="3 · Coding agents">
+      <p>Agents that plan and carry out multi-step changes across a project. Covered in depth in the course's <b>Agentic Coding</b> lecture.</p>
+    </div>
+    <h3>Tools</h3>
+    <p>Popular AI IDEs: <b>VS Code + GitHub Copilot</b> (free for students, teachers and maintainers of popular open-source projects) and <b>Cursor</b>. The space moves fast, and the leading products are roughly equivalent.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="ext">
+    <h2><span class="num">10</span>Extensions &amp; other IDE features</h2>
+    <p class="lede">Extensions make IDEs far more powerful. Browse lists like <b>Vim Awesome</b> or VS Code's most-popular extensions.</p>
+    <div class="grid g3">
+      <div class="card"><span class="pill b">Dev containers</span><p>Run your dev tools inside a container for portability and isolation (covered more in the shipping-code lecture).</p></div>
+      <div class="card"><span class="pill g">Remote development</span><p>Develop on another machine over SSH (e.g. VS Code Remote SSH) — handy for a powerful cloud GPU box.</p></div>
+      <div class="card"><span class="pill a">Collaborative editing</span><p>Edit the same file together, Google-Docs style (e.g. VS Code Live Share).</p></div>
+    </div>
+  </section>
+
+  <!-- 11 -->
+  <section id="quiz">
+    <h2><span class="num">11</span>Self-check quiz</h2>
+    <p class="lede"><span class="no-print">Pick an answer to see the explanation. Score: <span class="score" id="score">0 / 0</span></span><span class="print-only">Answer key — correct options are highlighted.</span></p>
+    <div id="quizbox"></div>
+    <button class="btn ghost no-print" id="quizReset">Reset quiz</button>
+  </section>
+
+  <!-- 12 -->
+  <section id="exercises">
+    <h2><span class="num">12</span>Exercises</h2>
+    <p class="lede">From the lecture (paraphrased). <span class="no-print">Tick them off as you go; progress is saved in this browser.</span></p>
+    <div class="no-print"><div class="exbar"><div id="exfill"></div></div><div style="font-size:13px;color:var(--muted)" id="excount"></div></div>
+    <div id="exlist"></div>
+  </section>
+
+  <!-- 13 -->
+  <section id="cheat">
+    <h2><span class="num">13</span>Vim cheat sheet</h2>
+    <div class="cheat">
+      <h4>Modes</h4>
+      <div class="r"><code>Esc</code><span>back to Normal</span></div>
+      <div class="r"><code>i a I A</code><span>insert before / after / line start / end</span></div>
+      <div class="r"><code>o O</code><span>new line below / above</span></div>
+      <div class="r"><code>v V Ctrl-v</code><span>visual / line / block</span></div>
+      <div class="r"><code>R</code><span>replace mode</span></div>
+      <div class="r"><code>:</code><span>command-line</span></div>
+      <h4>Move</h4>
+      <div class="r"><code>h j k l</code><span>← ↓ ↑ →</span></div>
+      <div class="r"><code>w b e</code><span>word fwd / back / end</span></div>
+      <div class="r"><code>0 ^ $</code><span>line start / first char / end</span></div>
+      <div class="r"><code>gg G :n</code><span>top / bottom / line n</span></div>
+      <div class="r"><code>f t ; ,</code><span>find char on line, repeat</span></div>
+      <div class="r"><code>/re n N</code><span>search, next, previous</span></div>
+      <div class="r"><code>%</code><span>matching bracket</span></div>
+      <div class="r"><code>Ctrl-u Ctrl-d</code><span>scroll up / down</span></div>
+      <h4>Edit</h4>
+      <div class="r"><code>d c y</code><span>delete / change / yank + motion</span></div>
+      <div class="r"><code>dd cc yy</code><span>whole line</span></div>
+      <div class="r"><code>x s r</code><span>del char / subst / replace one</span></div>
+      <div class="r"><code>p P</code><span>paste after / before</span></div>
+      <div class="r"><code>u Ctrl-r</code><span>undo / redo</span></div>
+      <div class="r"><code>~ J</code><span>flip case / join lines</span></div>
+      <h4>Combine</h4>
+      <div class="r"><code>3w 5j 7dw</code><span>counts repeat</span></div>
+      <div class="r"><code>ci( ci" ciw</code><span>change inside</span></div>
+      <div class="r"><code>da' daw</code><span>delete around</span></div>
+      <div class="r"><code>:w :q :wq</code><span>save / quit / both</span></div>
+    </div>
+  </section>
+
+  <footer>Notes based on <a href="https://missing.csail.mit.edu/2026/development-environment/">“Development Environment and Tools”</a>, The Missing Semester of Your CS Education (MIT, 2026) by Anish, Jon &amp; Jose — licensed CC BY-NC-SA. These notes are shared under the same licence.<span class="print-only" style="margin-top:4px">Interactive version: <a href="https://greymatter1005.github.io/missing-semester-notes/development-env.html">https://greymatter1005.github.io/missing-semester-notes/development-env.html</a></span></footer>
+</main>
+</div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* hero */
+const heroWords=['vim fizzbuzz.py','vimtutor','code .','ci"buzz'];
+let wi=0,ci=0,del=false;const te=$('#typed');
+(function tick(){const w=heroWords[wi];
+  if(!del){te.textContent=w.slice(0,++ci);if(ci===w.length){del=true;return setTimeout(tick,1400);}}
+  else{te.textContent=w.slice(0,--ci);if(ci===0){del=false;wi=(wi+1)%heroWords.length;}}
+  setTimeout(tick,del?40:85);})();
+
+/* progress + toc */
+const links=$$('#toc a'), secs=links.map(a=>$(a.getAttribute('href')));
+function onScroll(){const h=document.documentElement;$('#progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=0;secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<120)cur=i;});links.forEach((a,i)=>a.classList.toggle('active',i===cur));}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* tabs */
+$$('.tabs[data-tabs]').forEach(t=>{const g=t.dataset.tabs;t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $$('button',t).forEach(x=>x.classList.toggle('on',x===b));$$(`.tabpanel[data-group="${g}"]`).forEach(p=>p.classList.toggle('on',p.dataset.id===b.dataset.t));});});
+
+/* modes */
+const MI={normal:'<b>Normal</b> — where you live. Move around and run edit commands. <code>x</code> here <b>deletes the character under the cursor</b>.',
+ insert:'<b>Insert</b> — behaves like an ordinary editor. Enter with <code>i</code> (or <code>a</code>, <code>o</code>…). <code>x</code> here just <b>types an “x”</b>.',
+ replace:'<b>Replace</b> — every character you type overwrites the one under the cursor. Enter with <code>R</code>. <code>x</code> <b>overwrites one character with “x”</b>.',
+ visual:'<b>Visual</b> — select text with movement keys: <code>v</code> characters, <code>V</code> whole lines, <code>Ctrl-v</code> a block. <code>x</code> <b>deletes the selection</b>.',
+ cmd:'<b>Command-line</b> — <code>:</code> opens a prompt at the bottom: <code>:w</code> save, <code>:q</code> quit, <code>:6</code> go to line 6. <code>x</code> is just part of the command you type.'};
+$$('.mode').forEach(m=>m.addEventListener('click',()=>{$$('.mode').forEach(x=>x.classList.toggle('on',x===m));$('#modeinfo').innerHTML=MI[m.dataset.m];}));
+$('#modeinfo').innerHTML=MI.normal;
+
+/* grammar builder */
+const NOUN={w:'to the start of the next word',e:'to the end of the word',b:'back to the start of the word','$':'to the end of the line','0':'to the start of the line',j:'down a line',G:'to the end of the file'};
+const OBJ={'(':'parentheses ( )','[':'square brackets [ ]','{':'braces { }','"':'double-quoted string','\'':'single-quoted string',w:'word'};
+const VERB={d:'Delete',c:'Change (delete, then type)',y:'Yank (copy)'};
+function gram(){const c=$('#gC').value,v=$('#gV').value,m=$('#gM').value,n=$('#gN').value;let keys=c+v+m+n,mean,bad=false;
+  const isObj='([{"\''.includes(n);
+  if(m&&!v){bad=true;mean='Modifiers (i / a) only work after a verb such as d, c or y.';}
+  else if(isObj&&!m){bad=true;mean=`${n} on its own isn't a motion here — add the modifier i (inside) or a (around).`;}
+  else if(m&&!(isObj||n==='w')){bad=true;mean=`i / a need a text object like ( " ' [ { or w — not “${n}”.`;}
+  else if(m){mean=`${VERB[v]} ${m==='i'?'everything inside the':'the whole'} ${OBJ[n]}${m==='a'?(n==='w'?' plus the space after it':' including the delimiters'):''}${c?` (count ${c})`:''}.`;}
+  else{const reps=c?` × ${c}`:'';mean=v?`${VERB[v]} from the cursor ${NOUN[n]}${reps}${n==='j'?' — j and k act on whole lines':''}.`:`Move ${NOUN[n]}${reps}.`;}
+  if(v==='c'&&n==='w'&&!m)mean+=' (Special case: cw acts like ce — it keeps the space after the word.)';
+  $('#gK').textContent=keys;$('#gMean').innerHTML=bad?`<span class="bad">✗ ${esc(mean)}</span>`:'✓ '+esc(mean);}
+['gC','gV','gM','gN'].forEach(id=>$('#'+id).addEventListener('change',gram));gram();
+
+/* ================= mini Vim ================= */
+const START=`def fizz_buzz(limit):
+    for i in range(limit):
+        if i % 3 == 0:
+            print("fizz", end="")
+        if i % 5 == 0:
+            print("fizz", end="")
+        if i % 3 and i % 5:
+            print(i, end="")
+        print()
+
+def main():
+    fizz_buzz(20)`;
+let L,R,C,mode,pend,undo,redo,reg,cmdline,lastSearch,lastFind,vAnchor,msg,keylog;
+function vreset(){L=START.split('\n');R=0;C=0;mode='NORMAL';pend='';undo=[];redo=[];reg={t:'',line:false};cmdline=null;lastSearch='';lastFind=null;vAnchor=null;msg='';keylog=[];vdraw();$('#vChecks').innerHTML='';}
+const snap=()=>({L:[...L],R,C});
+function save(){undo.push(snap());if(undo.length>200)undo.shift();redo=[];}
+const len=r=>L[r].length;
+function clampC(){R=Math.max(0,Math.min(R,L.length-1));const max=mode==='INSERT'||mode==='REPLACE'?len(R):Math.max(0,len(R)-1);C=Math.max(0,Math.min(C,max));}
+/* flat helpers */
+function flat(){return L.join('\n');}
+function toIdx(r,c){let i=0;for(let k=0;k<r;k++)i+=L[k].length+1;return i+c;}
+function toRC(i){let r=0;while(r<L.length-1&&i>L[r].length){i-=L[r].length+1;r++;}return [r,Math.min(i,L[r].length)];}
+const cls=ch=>ch===undefined||ch==='\n'||/\s/.test(ch)?0:/\w/.test(ch)?1:2;
+function mW(i,s){const n=s.length;if(i>=n)return n;const k=cls(s[i]);if(k)while(i<n&&cls(s[i])===k)i++;
+  while(i<n&&cls(s[i])===0){if(s[i]==='\n'&&s[i+1]==='\n'){return i+1;}i++;}return Math.min(i,n);}
+function mE(i,s){const n=s.length;i++;while(i<n&&cls(s[i])===0)i++;if(i>=n)return n-1;const k=cls(s[i]);while(i+1<n&&cls(s[i+1])===k)i++;return i;}
+function mB(i,s){i--;while(i>0&&cls(s[i])===0)i--;if(i<=0)return 0;const k=cls(s[i]);while(i-1>=0&&cls(s[i-1])===k)i--;return i;}
+function firstNB(r){const m=L[r].match(/^\s*/)[0].length;return Math.min(m,Math.max(0,len(r)-1));}
+const PAIR={'(':')','[':']','{':'}',')':'(',']':'[','}':'{'};
+function matchBr(i,s){let j=i;while(j<s.length&&s[j]!=='\n'&&!'()[]{}'.includes(s[j]))j++;if(!'()[]{}'.includes(s[j]||''))return null;
+  const ch=s[j],tgt=PAIR[ch],fwd='([{'.includes(ch);let d=0;for(let k=j;fwd?k<s.length:k>=0;k+=fwd?1:-1){if(s[k]===ch)d++;else if(s[k]===tgt){d--;if(!d)return k;}}return null;}
+function textObj(kind,ch,i,s){
+  if(ch==='w'){if(cls(s[i])===0&&s[i]!=='\n'){let a=i,b=i;while(a>0&&cls(s[a-1])===0&&s[a-1]!=='\n')a--;while(b<s.length&&cls(s[b])===0&&s[b]!=='\n')b++;return [a,b];}
+    const k=cls(s[i]);let a=i,b=i;while(a>0&&cls(s[a-1])===k)a--;while(b<s.length&&cls(s[b])===k)b++;if(kind==='a'){while(b<s.length&&s[b]===' ')b++;}return [a,b];}
+  if(ch==='"'||ch==="'"||ch==='`'){const [r,c]=toRC(i);const line=L[r];const qs=[];for(let k=0;k<line.length;k++)if(line[k]===ch&&line[k-1]!=='\\')qs.push(k);
+    let pair=null;for(let k=0;k+1<qs.length;k+=2){if(c>=qs[k]&&c<=qs[k+1]){pair=[qs[k],qs[k+1]];break;}}
+    if(!pair)for(let k=0;k+1<qs.length;k+=2){if(qs[k]>c){pair=[qs[k],qs[k+1]];break;}}
+    if(!pair)return null;const base=toIdx(r,0);return kind==='i'?[base+pair[0]+1,base+pair[1]]:[base+pair[0],base+pair[1]+1];}
+  const open='([{'.includes(ch)?ch:PAIR[ch],close=PAIR[open];if(!close)return null;
+  let d=0,a=-1;for(let k=i;k>=0;k--){if(s[k]===close&&k!==i)d++;else if(s[k]===open){if(!d){a=k;break;}d--;}}
+  if(a<0){/* search forward on line */const [r]=toRC(i);const e=toIdx(r,len(r));for(let k=i;k<e;k++)if(s[k]===open){a=k;break;}if(a<0)return null;}
+  let b=-1;d=0;for(let k=a+1;k<s.length;k++){if(s[k]===open)d++;else if(s[k]===close){if(!d){b=k;break;}d--;}}if(b<0)return null;
+  return kind==='i'?[a+1,b]:[a,b+1];}
+/* motion: returns {i, incl, line} target from current pos, or null */
+function motion(key,count,s,opPending){let i=toIdx(R,C);const n=Math.max(1,count||1);
+  switch(key){
+   case 'h':return {i:Math.max(toIdx(R,0),i-n)};
+   case 'l':return {i:Math.min(toIdx(R,Math.max(0,len(R)-(opPending?0:1))),i+n)};
+   case 'j':return {r:Math.min(L.length-1,R+n),line:true};
+   case 'k':return {r:Math.max(0,R-n),line:true};
+   case 'w':{for(let k=0;k<n;k++)i=mW(i,s);return {i};}
+   case 'e':{for(let k=0;k<n;k++)i=mE(i,s);return {i,incl:true};}
+   case 'b':{for(let k=0;k<n;k++)i=mB(i,s);return {i};}
+   case '0':return {i:toIdx(R,0)};
+   case '^':return {i:toIdx(R,firstNB(R))};
+   case '$':return {i:toIdx(R+n-1<L.length?R+n-1:R,Math.max(0,len(R)-1)),incl:true,eol:true};
+   case 'G':return {r:count?Math.min(L.length,count)-1:L.length-1,line:true,first:true};
+   case 'gg':return {r:count?Math.min(L.length,count)-1:0,line:true,first:true};
+   case '%':{const m=matchBr(i,s);return m===null?null:{i:m,incl:true};}
+   case 'n':case 'N':return search(key==='N');
+  }
+  if(/^[fFtT].$/.test(key)){return findCh(key[0],key[1],n);}
+  if(key===';'||key===','){if(!lastFind)return null;let k=lastFind.k;if(key===',')k={f:'F',F:'f',t:'T',T:'t'}[k];return findCh(k,lastFind.ch,n,true);}
+  return null;}
+function findCh(k,ch,n,rep){const line=L[R];let c=C;
+  for(let x=0;x<n;x++){if(k==='f'||k==='t'){let j=line.indexOf(ch,c+1+((k==='t'&&rep)?1:0));if(j<0)return null;c=j;}else{let j=line.lastIndexOf(ch,c-1-((k==='T'&&rep)?1:0));if(j<0)return null;c=j;}}
+  if(!rep)lastFind={k,ch};const col=k==='t'?c-1:k==='T'?c+1:c;return {i:toIdx(R,col),incl:k==='f'||k==='t'};}
+function search(back){if(!lastSearch)return null;let re;try{re=new RegExp(lastSearch,'g');}catch(e){re=new RegExp(lastSearch.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g');}
+  const s=flat(),cur=toIdx(R,C);const hits=[];let m;while((m=re.exec(s))){hits.push(m.index);if(m[0]==='')re.lastIndex++;}
+  if(!hits.length){msg='E486: Pattern not found: '+lastSearch;return null;}
+  let t=back?[...hits].reverse().find(h=>h<cur):hits.find(h=>h>cur);if(t===undefined){t=back?hits[hits.length-1]:hits[0];msg='search hit '+(back?'TOP, continuing at BOTTOM':'BOTTOM, continuing at TOP');}
+  return {i:t};}
+function delRange(a,b,yank=true){const s=flat();if(yank)reg={t:s.slice(a,b),line:false};const ns=s.slice(0,a)+s.slice(b);L=ns.split('\n');if(!L.length)L=[''];[R,C]=toRC(a);}
+function delLines(r1,r2,yank=true){if(r1>r2)[r1,r2]=[r2,r1];if(yank)reg={t:L.slice(r1,r2+1).join('\n'),line:true};L.splice(r1,r2-r1+1);if(!L.length)L=[''];R=Math.min(r1,L.length-1);C=firstNB(R);}
+function enterInsert(){mode='INSERT';}
+/* apply operator over a motion result */
+function applyOp(op,mres){const s=flat();const cur=toIdx(R,C);
+  if(mres.line){let r1=R,r2=mres.r;if(r1>r2)[r1,r2]=[r2,r1];
+    if(op==='y'){reg={t:L.slice(r1,r2+1).join('\n'),line:true};msg=(r2-r1+1)+' lines yanked';return;}
+    save();if(op==='c'){reg={t:L.slice(r1,r2+1).join('\n'),line:true};const ind=L[r1].match(/^\s*/)[0];L.splice(r1,r2-r1+1,ind);R=r1;C=ind.length;enterInsert();return;}
+    delLines(r1,r2);return;}
+  let a=cur,b=mres.i;if(b<a){[a,b]=[b,a];}else if(mres.incl)b++;
+  if(mres.obj){a=mres.a;b=mres.b;}
+  if(op==='y'){reg={t:s.slice(a,b),line:false};[R,C]=toRC(Math.min(a,cur));return;}
+  save();delRange(a,b);if(op==='c')enterInsert();}
+function paste(before){if(!reg.t)return;save();
+  if(reg.line){const lines=reg.t.split('\n');const at=before?R:R+1;L.splice(at,0,...lines);R=at;C=firstNB(R);return;}
+  const s=flat();const at=toIdx(R,before||!len(R)?C:C+1);const ns=s.slice(0,at)+reg.t+s.slice(at);L=ns.split('\n');[R,C]=toRC(at+reg.t.length-1);}
+/* parse pending normal-mode keys; returns true when consumed */
+function normal(k){
+  const keys=pend+k;const m=keys.match(/^(\d*)([dcy]?)(\d*)(.*)$/);let cnt1=m[1],op=m[2],cnt2=m[3],rest=m[4];
+  if(cnt1==='0'&&!op&&!rest){pend='';return run('0',0,'');}
+  if(!rest){pend=keys;return;}
+  const count=(parseInt(cnt1||'1')*parseInt(cnt2||'1'))*((cnt1||cnt2)?1:0)||0;
+  // need more keys?
+  if(/^(g|[fFtT]|r|[ia])$/.test(rest)&&!(rest==='i'&&!op)&&!(rest==='a'&&!op)){pend=keys;return;}
+  if(rest==='Z'||rest==='ZZ'){pend='';return;}
+  pend='';run(rest,count,op);}
+function run(key,count,op){const s=flat();msg='';
+  if(op){if(key===op){/* dd cc yy */const r2=Math.min(L.length-1,R+Math.max(1,count)-1);applyOp(op,{line:true,r:r2});return;}
+    if(/^[ia].$/.test(key)){const t=textObj(key[0],key[1],toIdx(R,C),s);if(!t){msg='no text object here';return;}
+      if(op==='y'){reg={t:s.slice(t[0],t[1]),line:false};[R,C]=toRC(t[0]);return;}save();delRange(t[0],t[1]);if(op==='c')enterInsert();return;}
+    let mk=key;if(op==='c'&&key==='w'&&cls(s[toIdx(R,C)])!==0){mk='e';}
+    const mr=motion(mk,count,s,true);if(!mr){return;}
+    if(key==='w'&&!mr.line){const [tr]=toRC(mr.i);if(tr>R)mr.i=toIdx(R,len(R));}
+    applyOp(op,mr);return;}
+  const mr=motion(key,count,s,false);
+  if(mr){if(mr.line){R=mr.r;if(mr.first)C=firstNB(R);}else{[R,C]=toRC(mr.i);}clampC();return;}
+  const n=Math.max(1,count);
+  switch(key){
+   case 'i':enterInsert();return;
+   case 'a':if(len(R))C++;enterInsert();return;
+   case 'I':C=firstNB(R);enterInsert();return;
+   case 'A':C=len(R);enterInsert();return;
+   case 'o':case 'O':{save();const at=key==='o'?R+1:R;L.splice(at,0,'');R=at;C=0;enterInsert();return;}
+   case 'x':if(!len(R))return;save();delRange(toIdx(R,C),toIdx(R,Math.min(len(R),C+n)));clampC();return;
+   case 'X':if(!C)return;save();delRange(toIdx(R,Math.max(0,C-n)),toIdx(R,C));return;
+   case 's':save();delRange(toIdx(R,C),toIdx(R,Math.min(len(R),C+n)));enterInsert();return;
+   case 'S':run('c',n,'c');return;
+   case 'D':save();delRange(toIdx(R,C),toIdx(R,len(R)));clampC();return;
+   case 'C':save();delRange(toIdx(R,C),toIdx(R,len(R)));enterInsert();return;
+   case 'p':paste(false);return; case 'P':paste(true);return;
+   case 'u':{const u=undo.pop();if(!u){msg='Already at oldest change';return;}redo.push(snap());L=u.L;R=u.R;C=u.C;clampC();return;}
+   case '~':{if(!len(R))return;save();const ch=L[R][C];L[R]=L[R].slice(0,C)+(ch===ch.toUpperCase()?ch.toLowerCase():ch.toUpperCase())+L[R].slice(C+1);C=Math.min(C+1,len(R)-1);return;}
+   case 'J':{if(R>=L.length-1)return;save();const nx=L[R+1].replace(/^\s+/,'');C=len(R);L[R]=L[R].replace(/\s+$/,'')+(nx?' ':'')+nx;L.splice(R+1,1);return;}
+   case 'v':mode='VISUAL';vAnchor=toIdx(R,C);return;
+   case 'V':mode='V-LINE';vAnchor=R;return;
+   case 'R':save();mode='REPLACE';return;
+   case ':':cmdline=':';return;
+   case '/':cmdline='/';return;
+   case 'H':R=0;C=firstNB(R);return; case 'L':R=L.length-1;C=firstNB(R);return; case 'M':R=Math.floor((L.length-1)/2);C=firstNB(R);return;
+  }
+  if(/^r.$/.test(key)){if(!len(R))return;save();L[R]=L[R].slice(0,C)+key[1]+L[R].slice(C+1);return;}
+  msg='';}
+function visualKey(k){
+  if(k==='Escape'){mode='NORMAL';clampC();return;}
+  if('dxcy~'.includes(k)&&k.length===1){
+    if(mode==='V-LINE'){const r1=Math.min(vAnchor,R),r2=Math.max(vAnchor,R);mode='NORMAL';R=r1;applyOp(k==='x'?'d':k==='~'?'y':k,{line:true,r:r2});return;}
+    const a=Math.min(vAnchor,toIdx(R,C)),b=Math.max(vAnchor,toIdx(R,C))+1;const s=flat();mode='NORMAL';
+    if(k==='y'){reg={t:s.slice(a,b),line:false};[R,C]=toRC(a);return;}
+    if(k==='~'){save();const t=s.slice(a,b).split('').map(c=>c===c.toUpperCase()?c.toLowerCase():c.toUpperCase()).join('');L=(s.slice(0,a)+t+s.slice(b)).split('\n');[R,C]=toRC(a);return;}
+    save();delRange(a,b);if(k==='c')enterInsert();else clampC();return;}
+  // motions in visual
+  const keys=pend+k;const m=keys.match(/^(\d*)(.*)$/);if(!m[2]){pend=keys;return;}if(/^(g|[fFtT])$/.test(m[2])){pend=keys;return;}pend='';
+  if(m[1]==='0'&&!m[2])return;const mr=motion(m[2],parseInt(m[1]||'0'),flat(),false);if(!mr)return;
+  if(mr.line){R=mr.r;if(mr.first)C=firstNB(R);}else[R,C]=toRC(mr.i);clampC();}
+function insertKey(e){const k=e.key;
+  if(k==='Escape'){mode='NORMAL';C=Math.max(0,C-1);clampC();return;}
+  if(k==='Backspace'){if(C>0){if(mode==='REPLACE'){C--;return;}L[R]=L[R].slice(0,C-1)+L[R].slice(C);C--;}else if(R>0&&mode==='INSERT'){C=len(R-1);L[R-1]+=L[R];L.splice(R,1);R--;}return;}
+  if(k==='Enter'){const ind='';const rest=L[R].slice(C);L[R]=L[R].slice(0,C);L.splice(R+1,0,ind+rest);R++;C=ind.length;return;}
+  if(k==='Tab'){L[R]=L[R].slice(0,C)+'    '+L[R].slice(C);C+=4;return;}
+  if(k==='ArrowLeft'){C=Math.max(0,C-1);return;}if(k==='ArrowRight'){C=Math.min(len(R),C+1);return;}
+  if(k.length!==1)return;
+  if(mode==='REPLACE'&&C<len(R))L[R]=L[R].slice(0,C)+k+L[R].slice(C+1);else L[R]=L[R].slice(0,C)+k+L[R].slice(C);C++;}
+function cmdKey(e){const k=e.key;
+  if(k==='Escape'){cmdline=null;return;}
+  if(k==='Backspace'){if(cmdline.length<=1)cmdline=null;else cmdline=cmdline.slice(0,-1);return;}
+  if(k==='Enter'){const c=cmdline;cmdline=null;
+    if(c[0]==='/'){lastSearch=c.slice(1)||lastSearch;const mr=search(false);if(mr)[R,C]=toRC(mr.i);clampC();return;}
+    const body=c.slice(1).trim();
+    if(/^\d+$/.test(body)){R=Math.min(L.length,Math.max(1,+body))-1;C=firstNB(R);return;}
+    if(body==='$'){R=L.length-1;C=firstNB(R);return;}
+    if(/^w/.test(body)){msg='"fizzbuzz.py" '+L.length+'L written (simulated)';if(/q/.test(body))msg+=' — and you\'d be out of Vim!';return;}
+    if(/^q/.test(body)){msg='(you would leave Vim now — staying in the simulator)';return;}
+    msg='E492: Not an editor command: '+body;return;}
+  if(k.length===1)cmdline+=k;}
+function vkey(e){if(e.metaKey||e.altKey)return;let k=e.key;if(['Shift','Control','Alt','Meta','CapsLock'].includes(k))return;
+  e.preventDefault();
+  if(e.ctrlKey){if(k==='r'&&mode==='NORMAL'){const r=redo.pop();if(r){undo.push(snap());L=r.L;R=r.R;C=r.C;clampC();}else msg='Already at newest change';}
+    else if(k==='['){k='Escape';}else if((k==='d'||k==='u')&&mode==='NORMAL'){R=k==='d'?Math.min(L.length-1,R+6):Math.max(0,R-6);clampC();}
+    else if(k==='v'&&mode==='NORMAL'){msg='Visual Block (Ctrl-v) is not simulated here — try v or V';}
+    if(k!=='Escape'){log('<C-'+k+'>');vdraw();return;}}
+  log(k);
+  if(cmdline!==null)cmdKey({key:k});
+  else if(mode==='INSERT'||mode==='REPLACE')insertKey({key:k});
+  else if(mode==='VISUAL'||mode==='V-LINE')visualKey(k);
+  else{if(k==='Escape'){pend='';msg='';}else if(k.length===1)normal(k);else if(k==='Enter'){R=Math.min(L.length-1,R+1);C=firstNB(R);}
+    else if(k.startsWith('Arrow')){msg='Arrow keys work in real Vim — but try h j k l!';}}
+  vdraw();}
+function log(k){keylog.push(k==='Escape'?'⎋':k==='Enter'?'⏎':k===' '?'␣':k==='Backspace'?'⌫':k);if(keylog.length>60)keylog.shift();}
+function vdraw(){clampC();const buf=$('#vbuf');let html='';
+  let sa=-1,sb=-1,lr1=-1,lr2=-1;if(mode==='VISUAL'){const ci=toIdx(R,C);sa=Math.min(vAnchor,ci);sb=Math.max(vAnchor,ci);}if(mode==='V-LINE'){lr1=Math.min(vAnchor,R);lr2=Math.max(vAnchor,R);}
+  let base=0;
+  L.forEach((line,r)=>{let h='';const chars=line.length?line.split(''):[];
+    for(let c=0;c<=chars.length;c++){const ch=c<chars.length?chars[c]:'';const gi=base+c;const isCur=r===R&&c===C;
+      if(c===chars.length&&!isCur&&!(lr1<=r&&r<=lr2))break;
+      let cl='';if(isCur&&cmdline===null)cl=(mode==='INSERT'||mode==='REPLACE')?'cur-bar':'cur-blk';
+      if((gi>=sa&&gi<=sb&&sa>=0)||(r>=lr1&&r<=lr2&&lr1>=0))cl+=' sel';
+      const t=ch===''?' ':esc(ch);h+=cl?`<span class="${cl}">${t}</span>`:t;}
+    html+=`<div class="ln ${r===R?'cur':''}"><i>${r+1}</i><span>${h||' '}</span></div>`;base+=line.length+1;});
+  buf.innerHTML=html;
+  $('#vmode').textContent=mode==='NORMAL'?'NORMAL':'-- '+mode+' --';$('#vmode').className='md '+mode;
+  $('#vpend').textContent=pend;$('#vpos').textContent=`${R+1}:${C+1}`;
+  $('#vcmd').textContent=cmdline!==null?cmdline:msg;
+  $('#vlog').textContent=keylog.length?'keys: '+keylog.join(' '):'';}
+const vim=$('#vim');vim.addEventListener('keydown',vkey);
+vim.addEventListener('focus',()=>{$('#vhint').textContent='Editor focused — you\'re in Normal mode. Press Esc whenever in doubt.';});
+vim.addEventListener('blur',()=>{$('#vhint').textContent='Click here to focus the editor, then type Vim commands.';});
+vim.addEventListener('click',e=>{const ln=e.target.closest('.ln');vim.focus();if(!ln)return;});
+$('#vReset').onclick=()=>{vreset();vim.focus();};
+$('#vCheck').onclick=()=>{const t=flat().replace(/[ \t]+/g,' ');
+  const ok1=/range\(\s*1\s*,\s*limit\s*\+\s*1\s*\)/.test(t);
+  const ok2=/i % 5 == 0:\s*\n\s*print\("buzz"/.test(t);
+  const ok3=/(^|\n)if __name__ ?== ?["']__main__["'] ?:\s*\n?\s*main\(\)/.test(t);
+  const ok4=/i % 3 == 0:\s*\n\s*print\("fizz"/.test(t);
+  $('#vChecks').innerHTML=[[ok3,'main() is called (from a top-level, unindented line)'],[ok1,'loop runs 1 … limit (range(1, limit + 1))'],[ok2,'multiples of 5 print "buzz"'],[ok4,'multiples of 3 still print "fizz"']].map(([o,l])=>`<div>${o?'✅':'❌'} ${l}</div>`).join('')+((ok1&&ok2&&ok3&&ok4)?'<div style="margin-top:6px;font-weight:700;color:var(--green)">Fixed! 🎉 Try it again with fewer keystrokes.</div>':'');};
+vreset();
+
+/* quiz */
+const Q=[
+ {q:'You open a file in Vim and press <code>x</code>. What happens?',o:['An “x” is typed','The character under the cursor is deleted','The file closes','Nothing — x is unbound'],a:1,e:'Vim starts in Normal mode, where x deletes the character under the cursor. In Insert mode it would type an x.'},
+ {q:'How do you get back to Normal mode from any other mode?',o:['<code>i</code>','<code>:</code>','<code>Esc</code>','<code>Ctrl-c</code> only'],a:2,e:'Esc always returns to Normal mode — which is why many people remap Caps Lock to Escape.'},
+ {q:'What does <code>dw</code> do?',o:['Duplicates a word','Deletes from the cursor to the start of the next word','Deletes the whole line','Moves down a word'],a:1,e:'d is the delete verb, w the “next word” noun: verb + noun.'},
+ {q:'Which command changes the text inside a pair of parentheses?',o:['<code>c(</code>','<code>ci(</code>','<code>ca(</code>','<code>d(</code>'],a:1,e:'c = change, i = inside, ( = parentheses. ca( would also remove the parentheses themselves.'},
+ {q:'<code>7dw</code> means…',o:['Delete 7 characters','Delete the word 7 times over 7 lines','Delete 7 words','Go to line 7 and delete a word'],a:2,e:'A count in front repeats the action: 7 × delete-word.'},
+ {q:'Which jumps to line 6?',o:['<code>6j</code>','<code>:6⏎</code>','<code>/6⏎</code>','<code>6l</code>'],a:1,e:':6 then Enter (or 6G) goes to line 6. 6j moves 6 lines down from where you are.'},
+ {q:'What does <code>%</code> do in Normal mode?',o:['Find and replace','Jump to the matching bracket or brace','Go to 50% of the file','Show the percentage scrolled'],a:1,e:'% jumps between matching ( ), [ ] and { }.'},
+ {q:'What does a language server provide?',o:['Faster typing','Semantic features like jump-to-definition, find references and completions','Cloud backups','Syntax colours only'],a:1,e:'Via the Language Server Protocol, the IDE gets real understanding of code: completion, docs on hover, definitions, references, imports, diagnostics.'},
+ {q:'Your Python IDE can\'t see installed packages. What\'s the usual fix?',o:['Reinstall the IDE','Point the IDE at your Python environment','Turn off the language server','Use AI autocomplete instead'],a:1,e:'The language server needs to know which environment to inspect.'},
+ {q:'What can inline chat do that autocomplete can\'t?',o:['Suggest code at the cursor','Rewrite existing, selected code','Run your tests','Work offline'],a:1,e:'Autocomplete only adds text at the cursor; inline chat proposes edits to code you select.'},
+ {q:'Best way to steer AI autocomplete toward the code you want?',o:['Type faster','Descriptive names, docstrings or a comment stating intent','Leave the function body empty','Use shorter variable names'],a:1,e:'In the lecture, adding “# extract all Markdown links…” turned a vague guess into the right regex.'},
+ {q:'You want to code on a powerful cloud GPU machine from your laptop\'s IDE. Which feature fits?',o:['Live Share','Remote development over SSH','Dev containers','Vim mode'],a:1,e:'Remote development (e.g. VS Code Remote SSH) runs the tools on the remote machine.'}];
+const qb=$('#quizbox');let answered={};
+function drawQuiz(){qb.innerHTML=Q.map((x,i)=>`<div class="q" data-i="${i}"><div class="qt">${i+1}. ${x.q}</div><div class="opts">${x.o.map((o,j)=>`<button class="opt" data-j="${j}" ${j===x.a?'data-right':''}>${String.fromCharCode(65+j)}. ${o}</button>`).join('')}</div><div class="ex">💡 ${x.e}</div></div>`).join('');answered={};score();}
+function score(){const n=Object.keys(answered).length,c=Object.values(answered).filter(Boolean).length;$('#score').textContent=`${c} / ${n}`+(n===Q.length?` — ${c>=10?'great work!':c>=6?'solid, review the misses':'re-read sections 03–05'}`:'');}
+qb.addEventListener('click',e=>{const b=e.target.closest('button.opt');if(!b)return;const q=b.closest('.q'),i=+q.dataset.i;if(q.classList.contains('done'))return;
+  const ok=+b.dataset.j===Q[i].a;b.classList.add(ok?'right':'wrong');if(!ok)q.querySelector('[data-right]').classList.add('right');q.classList.add('done');answered[i]=ok;score();});
+$('#quizReset').onclick=drawQuiz;drawQuiz();
+
+/* exercises */
+const EX=[['From the lecture',[
+  ['Turn on Vim mode in everything that supports it (editor, shell…) and use it for all your text editing for a month. Whenever something feels slow, search for a better way — there usually is one.','Start with VSCodeVim (or your IDE\'s equivalent) and <code>bindkey -v</code> in Zsh.'],
+  ['Complete a VimGolf challenge.','Count your keystrokes, then look at other players\' solutions.'],
+  ['Set up an IDE extension and language server for a real project. Check that everything works — including jump-to-definition into library code.','For Python, make sure the IDE points at the project\'s environment.'],
+  ['Browse a list of IDE extensions and install one that looks useful.','Vim Awesome for Vim; the VS Code marketplace sorted by popularity.']]],
+ ['Bonus practice in these notes',[
+  ['Fix fizz buzz in the simulator above using the lecture\'s keystrokes.','Then try again in fewer keystrokes.'],
+  ['Run <code>vimtutor</code> in your terminal and finish it.','About 30 minutes.']]]];
+let done={};try{done=JSON.parse(localStorage.getItem('l3notes-ex')||'{}');}catch(e){}
+let k=0;$('#exlist').innerHTML=EX.map(([g,items])=>`<div class="exgroup"><h4>${g}</h4>${items.map(([t,h])=>{const id='e'+(k++);return `<div class="ex-item ${done[id]?'checked':''}" data-id="${id}"><input type="checkbox" ${done[id]?'checked':''} aria-label="done"><div><div class="t">${k}. ${t}</div>${h?`<button class="hintbtn">Show hint</button><div class="h">💡 ${h}</div>`:''}</div></div>`;}).join('')}</div>`).join('');
+function exProg(){const n=$$('.ex-item input:checked').length;$('#exfill').style.width=(n/k*100)+'%';$('#excount').textContent=`${n} of ${k} done`;}
+$('#exlist').addEventListener('change',e=>{const it=e.target.closest('.ex-item');it.classList.toggle('checked',e.target.checked);done[it.dataset.id]=e.target.checked;try{localStorage.setItem('l3notes-ex',JSON.stringify(done));}catch(err){}exProg();});
+$('#exlist').addEventListener('click',e=>{if(!e.target.classList.contains('hintbtn'))return;const it=e.target.closest('.ex-item');it.classList.toggle('showhint');e.target.textContent=it.classList.contains('showhint')?'Hide hint':'Show hint';});
+exProg();
+})();
+</script>
+</body>
+</html>
