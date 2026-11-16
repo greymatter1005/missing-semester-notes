@@ -1,0 +1,900 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Shell — Interactive Notes (Missing Semester 2026, Lecture 1)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ee; --paper:#fffdf8; --ink:#1c2321; --muted:#5d6763; --line:#e3ded2;
+  --green:#1f7a55; --green-soft:#e3f2ea; --amber:#c97a12; --amber-soft:#fbefd9;
+  --blue:#2f5f9e; --blue-soft:#e4ecf7; --red:#b4443a; --red-soft:#f8e4e1;
+  --term:#12171a; --term-ink:#d7e2dc; --term-green:#6fdc9d; --term-amber:#f2b55a; --term-blue:#7fb3ff;
+  --mono:'JetBrains Mono','DejaVu Sans Mono',ui-monospace,monospace;
+  --sans:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.62 var(--sans);-webkit-font-smoothing:antialiased}
+code,kbd,pre{font-family:var(--mono)}
+code{background:#ece8dc;padding:.08em .38em;border-radius:5px;font-size:.88em}
+kbd{background:#fff;border:1px solid #cfc8b8;border-bottom-width:2px;border-radius:5px;padding:.05em .4em;font-size:.82em}
+a{color:var(--blue)}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--green),var(--amber));width:0;z-index:50}
+
+/* layout */
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;max-width:1180px;margin:0 auto;padding:0 24px 80px}
+nav.toc{position:sticky;top:20px;align-self:start;margin-top:28px;font-size:14px;max-height:calc(100vh - 40px);overflow:auto}
+nav.toc h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+nav.toc a{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:8px;color:var(--ink);text-decoration:none;border-left:2px solid transparent}
+nav.toc a span{font-family:var(--mono);font-size:11px;color:var(--muted);width:18px}
+nav.toc a:hover{background:#ece8dc}
+nav.toc a.active{background:var(--green-soft);border-left-color:var(--green);font-weight:600}
+main{min-width:0}
+
+/* hero */
+.hero{background:var(--term);color:var(--term-ink);border-radius:0 0 22px 22px;padding:42px 44px 38px;margin-bottom:34px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(111,220,157,.18),transparent 70%)}
+.hero .kicker{font-family:var(--mono);color:var(--term-green);font-size:13px;letter-spacing:.04em}
+.hero h1{font-size:44px;line-height:1.08;margin:10px 0 12px;color:#fff;letter-spacing:-.02em}
+.hero p{max-width:640px;color:#b7c4be;margin:0}
+.hero .typed{font-family:var(--mono);margin-top:22px;font-size:15px;color:var(--term-ink)}
+.hero .typed b{color:var(--term-green);font-weight:400}
+.cursor{display:inline-block;width:9px;height:17px;background:var(--term-green);vertical-align:-3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.meta span{font-size:12px;border:1px solid #2f3a37;border-radius:99px;padding:4px 11px;color:#9fb0a9}
+
+/* sections */
+section{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:30px 34px;margin-bottom:26px;scroll-margin-top:16px}
+section h2{display:flex;align-items:center;gap:12px;font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+section h2 .num{font-family:var(--mono);font-size:13px;background:var(--ink);color:#fff;border-radius:7px;padding:3px 8px}
+section .lede{color:var(--muted);margin:0 0 18px}
+h3{font-size:18px;margin:26px 0 8px}
+p{margin:0 0 12px}
+
+/* callouts */
+.callout{display:flex;gap:12px;border-radius:12px;padding:13px 16px;margin:14px 0;font-size:15px}
+.callout .ic{font-size:18px;line-height:1.4}
+.callout.tip{background:var(--green-soft)}
+.callout.warn{background:var(--amber-soft)}
+.callout.info{background:var(--blue-soft)}
+.callout.bad{background:var(--red-soft)}
+.callout b{font-weight:700}
+
+/* terminal-styled code */
+.term{background:var(--term);color:var(--term-ink);border-radius:12px;margin:12px 0;position:relative;overflow:hidden;font-size:13.5px}
+.term .bar{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#1b2225}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:#3a4549;display:block}
+.term .bar i:nth-child(1){background:#e0625a}.term .bar i:nth-child(2){background:#e2b04a}.term .bar i:nth-child(3){background:#5cc370}
+.term .bar em{font-style:normal;font-family:var(--mono);font-size:11px;color:#7d8c87;margin-left:8px}
+.term pre{margin:0;padding:14px 16px;overflow-x:auto;white-space:pre;line-height:1.55}
+.term .p{color:var(--term-green)} .term .o{color:#9aa9a3} .term .c{color:#6f807a;font-style:italic} .term .k{color:var(--term-amber)} .term .s{color:var(--term-blue)}
+.copy{position:absolute;top:6px;right:8px;background:#28322f;color:#cfe0d8;border:0;border-radius:7px;font:12px var(--sans);padding:4px 10px;cursor:pointer}
+.copy:hover{background:#34423d}
+
+/* grids & cards */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 6px;font-size:15px}
+.card p{font-size:14.5px;color:#39423f;margin:0}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:99px;padding:2px 9px;margin-bottom:8px}
+.pill.g{background:var(--green-soft);color:var(--green)} .pill.a{background:var(--amber-soft);color:var(--amber)} .pill.b{background:var(--blue-soft);color:var(--blue)} .pill.r{background:var(--red-soft);color:var(--red)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;font:500 14px var(--sans);cursor:pointer;color:var(--ink)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabpanel{display:none;margin-top:12px}
+.tabpanel.on{display:block}
+
+/* prompt anatomy */
+.anatomy{background:var(--term);border-radius:12px;padding:26px 20px 18px;text-align:center}
+.anatomy .line{font-family:var(--mono);font-size:30px;color:var(--term-ink);letter-spacing:.02em}
+.anatomy .seg{cursor:pointer;border-radius:6px;padding:0 3px;transition:.15s;border-bottom:2px dashed transparent}
+.anatomy .seg:hover,.anatomy .seg.on{background:#24302c}
+.anatomy .seg[data-k="host"]{color:var(--term-blue);border-bottom-color:var(--term-blue)}
+.anatomy .seg[data-k="cwd"]{color:var(--term-green);border-bottom-color:var(--term-green)}
+.anatomy .seg[data-k="dollar"]{color:var(--term-amber);border-bottom-color:var(--term-amber)}
+.anatomy .explain{margin-top:16px;color:#c9d6d0;font-size:14.5px;min-height:46px}
+.anatomy .hint{color:#7d8c87;font-size:12px;margin-top:6px}
+
+/* widgets */
+.widget{border:1.5px solid var(--green);border-radius:14px;padding:18px 20px;margin:18px 0;background:linear-gradient(180deg,#f3faf6,#fff)}
+.widget .wt{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.widget label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+.widget input[type=text]{width:100%;font:14px var(--mono);padding:9px 11px;border:1px solid #cfc8b8;border-radius:9px;background:#fff}
+.widget .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.result{margin-top:12px;font-family:var(--mono);font-size:14px;background:var(--term);color:var(--term-ink);border-radius:10px;padding:12px 14px}
+.result .step{color:#8fa09a}
+.result .final{color:var(--term-green);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{font:12px var(--mono);background:#fff;border:1px solid #cfc8b8;border-radius:7px;padding:3px 8px;cursor:pointer}
+.chips button:hover{border-color:var(--green)}
+
+/* PATH lookup */
+.pathdirs{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.pathdirs div{font-family:var(--mono);font-size:13.5px;padding:7px 12px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:.25s;display:flex;justify-content:space-between}
+.pathdirs div.scan{background:var(--amber-soft);border-color:var(--amber)}
+.pathdirs div.miss{opacity:.5}
+.pathdirs div.hit{background:var(--green-soft);border-color:var(--green);font-weight:600}
+
+/* tools */
+.toolgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:14px}
+.tool{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;transition:.15s}
+.tool:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.tool .nm{font-family:var(--mono);font-weight:600;font-size:17px}
+.tool .what{font-size:14px;color:#39423f;margin:4px 0 8px}
+.tool code{display:block;background:var(--term);color:var(--term-ink);padding:7px 9px;border-radius:7px;font-size:12px;white-space:pre-wrap;word-break:break-word}
+.tool .alt{font-size:12px;color:var(--muted);margin-top:8px}
+.tool.hide{display:none}
+
+/* sed anatomy */
+.sed{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;font-family:var(--mono);font-size:22px;margin:16px 0 8px}
+.sed span{padding:6px 8px;border-radius:7px;cursor:default;position:relative}
+.sedlegend{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;font-size:13.5px}
+.sedlegend div{border-radius:9px;padding:8px 11px}
+
+/* pipeline stepper */
+.pipe{display:flex;flex-direction:column;gap:0}
+.stage{display:grid;grid-template-columns:40px 1fr;gap:12px;cursor:pointer}
+.stage .dot{display:flex;flex-direction:column;align-items:center}
+.stage .dot b{width:30px;height:30px;border-radius:50%;background:#e7e2d6;color:var(--muted);display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);transition:.2s}
+.stage .dot i{flex:1;width:2px;background:#e7e2d6;min-height:14px}
+.stage:last-child .dot i{display:none}
+.stage .body{padding-bottom:14px}
+.stage .cmd{font-family:var(--mono);font-size:13.5px;background:#efebe0;border-radius:8px;padding:7px 10px;display:inline-block;word-break:break-all}
+.stage .why{font-size:14.5px;color:#39423f;margin-top:6px;display:none}
+.stage .out{display:none;margin-top:8px}
+.stage.on .dot b{background:var(--green);color:#fff}
+.stage.on .dot i{background:var(--green)}
+.stage.on .cmd{background:var(--green-soft)}
+.stage.cur .why,.stage.cur .out{display:block}
+.pipectl{display:flex;gap:8px;margin:6px 0 16px}
+.btn{white-space:nowrap;border:0;background:var(--ink);color:#fff;border-radius:9px;padding:8px 14px;font:600 13.5px var(--sans);cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid #cfc8b8}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* redirect table */
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td code{white-space:nowrap}
+
+/* flags */
+.flags{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.flag{border-radius:12px;padding:14px 16px;background:#fff;border:1px solid var(--line);cursor:pointer;transition:.15s}
+.flag .f{font:600 20px var(--mono);color:var(--amber)}
+.flag .s{font-size:13px;color:var(--muted)}
+.flag .d{display:none;font-size:14px;margin-top:8px}
+.flag.on{border-color:var(--amber);background:var(--amber-soft)}
+.flag.on .d{display:block}
+
+/* sandbox terminal */
+.sandbox{background:var(--term);border-radius:14px;overflow:hidden}
+.sandbox .screen{height:360px;overflow-y:auto;padding:14px 16px;font:13.5px/1.55 var(--mono);color:var(--term-ink);cursor:text}
+.sandbox .screen .ln{white-space:pre-wrap;word-break:break-word}
+.sandbox .inrow{display:flex;gap:8px;align-items:center}
+.sandbox input{flex:1;background:transparent;border:0;outline:0;color:#fff;font:13.5px var(--mono);padding:0}
+.sandbox .p{color:var(--term-green)} .sandbox .e{color:#ff8f86} .sandbox .d{color:var(--term-blue)} .sandbox .x{color:var(--term-amber)} .sandbox .m{color:#80908a}
+
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:#fff}
+.q .qt{font-weight:600;margin-bottom:10px}
+.q .opts{display:grid;gap:7px}
+.q button.opt{text-align:left;border:1px solid #d8d2c4;background:#fdfcf8;border-radius:9px;padding:9px 12px;font:14.5px var(--sans);cursor:pointer;color:var(--ink)}
+.q button.opt:hover{border-color:var(--green)}
+.q button.opt.right{background:var(--green-soft);border-color:var(--green)}
+.q button.opt.wrong{background:var(--red-soft);border-color:var(--red)}
+.q .ex{display:none;font-size:14px;margin-top:10px;color:#39423f;border-left:3px solid var(--green);padding-left:10px}
+.q.done .ex{display:block}
+.score{font-weight:700;font-family:var(--mono);color:var(--green)}
+
+/* exercises */
+.exgroup h4{margin:18px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ex-item{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.ex-item input{width:18px;height:18px;margin-top:3px;accent-color:var(--green)}
+.ex-item .t{font-size:15px}
+.ex-item.checked .t{color:var(--muted);text-decoration:line-through;text-decoration-color:#b9b2a2}
+.ex-item .hintbtn{font-size:12.5px;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;margin-top:4px}
+.ex-item .h{display:none;font-size:13.5px;background:var(--blue-soft);border-radius:8px;padding:7px 10px;margin-top:6px}
+.ex-item.showhint .h{display:block}
+.exbar{height:8px;background:#ebe6da;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.exbar div{height:100%;background:var(--green);width:0;transition:.3s}
+
+/* cheat sheet */
+.cheat{display:grid;grid-template-columns:repeat(2,1fr);gap:0 26px}
+.cheat .r{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.cheat .r code{background:none;padding:0;font-weight:600;color:var(--green);font-size:13px}
+.cheat h4{grid-column:1/-1;margin:14px 0 2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+
+.linkbanner{border:1.5px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 16px;margin:0 0 14px;font-size:13px}
+.linkbanner a{color:var(--green)!important;font-family:var(--mono);font-weight:600;text-decoration:underline!important}
+.linkbanner .lb-ic{float:left;margin-right:12px;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;text-align:center;line-height:28px;font-size:12px}
+footer{font-size:13px;color:var(--muted);text-align:center;padding:10px}
+.print-only{display:none}
+.ptyped{display:none}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr} nav.toc{display:none}
+  .g2,.g3,.flags,.cheat{grid-template-columns:1fr}
+  .hero{padding:30px 22px}.hero h1{font-size:32px}
+  section{padding:22px 18px}
+  .widget .row{grid-template-columns:1fr}
+}
+
+/* ---------- print / PDF ---------- */
+@page{size:A4;margin:14mm 12mm}
+@media print{
+  body{background:#fff;font-size:12.5px}
+  .progress,nav.toc,.copy,.no-print,.pipectl,.hintbtn,.tabs{display:none!important}
+  .print-only{display:block}
+  .print-only.grid{display:grid}
+  .wrap{display:block;padding:0;max-width:none}
+  .hero{border-radius:14px;padding:28px 30px;margin-bottom:16px}
+  .hero h1{font-size:34px}
+  section{border:1px solid #ddd6c6;padding:18px 22px;margin-bottom:14px;break-inside:auto}
+  h2,h3,h4,.lede{break-after:avoid}
+  .card,.tool,.q,.callout,.term,.flag,.stage,.ex-item,.widget,.anatomy{break-inside:avoid}
+  .tabpanel{display:block!important;margin-top:10px}
+  .tabpanel::before{content:attr(data-label);display:block;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .stage .why,.stage .out{display:block!important}
+  .stage .dot b{background:var(--green)!important;color:#fff!important}
+  .flag .d{display:block!important}
+  .q .ex{display:block!important}
+  .q .opts button[data-right]{background:var(--green-soft);border-color:var(--green)}
+  .ex-item .h{display:block!important}
+  .sandbox{display:none!important}
+  .toolgrid{grid-template-columns:repeat(3,1fr)}
+  .tool:hover{transform:none;box-shadow:none}
+  .anatomy .explain{display:none}
+  .hero .cursor,#typed{display:none}
+  .ptyped{display:inline}
+  .term pre{white-space:pre-wrap;word-break:break-all}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  .flags{grid-template-columns:repeat(3,1fr)}
+  .cheat{grid-template-columns:repeat(2,1fr)}
+  a{color:var(--ink);text-decoration:none}
+}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>Contents</h4>
+    <a href="#what"><span>01</span>What is the shell?</a>
+    <a href="#prompt"><span>02</span>Reading the prompt</a>
+    <a href="#navigate"><span>03</span>Running &amp; navigating</a>
+    <a href="#path"><span>04</span>How commands are found</a>
+    <a href="#tools"><span>05</span>The core toolkit</a>
+    <a href="#pipeline"><span>06</span>Pipeline walkthrough</a>
+    <a href="#bash"><span>07</span>The bash language</a>
+    <a href="#scripts"><span>08</span>Writing scripts</a>
+    <a href="#sandbox" class="no-print"><span>09</span>Practice terminal</a>
+    <a href="#upgrades"><span>10</span>Upgrades &amp; extras</a>
+    <a href="#quiz"><span>11</span>Self-check quiz</a>
+    <a href="#exercises"><span>12</span>Exercises</a>
+    <a href="#cheat"><span>13</span>Cheat sheet</a>
+  </nav>
+
+<main>
+  <header class="hero">
+    <div class="kicker">MIT · The Missing Semester of Your CS Education · 2026 · Lecture 1</div>
+    <h1>Introduction to the Shell</h1>
+    <p>Study notes: what the shell is, how to move around, the core text-processing tools, and the bash basics you need to start chaining programs together.</p>
+    <div class="typed"><b>missing:~$</b> <span id="typed"></span><span class="ptyped">man bash</span><span class="cursor"></span></div>
+    <div class="meta"><span>Interactive notes</span><span>~25 min read</span><span>Includes quiz + practice terminal</span></div>
+  </header>
+
+  <div class="print-only linkbanner">
+    <div class="lb-ic">▶</div>
+    <div><b>Interactive version</b> — practice terminal, quiz, path resolver &amp; pipeline stepper:<br><a href="https://greymatter1005.github.io/missing-semester-notes/shell-intro.html">https://greymatter1005.github.io/missing-semester-notes/shell-intro.html</a></div>
+  </div>
+  <div class="callout info">
+    <div class="ic">🎯</div>
+    <div><b>Why this course exists.</b> We use computers to automate repetitive work, but rarely automate our <i>own</i> computer use. Most people know a handful of memorised commands and copy-paste the rest. The course aims to make you fluent with the tools you already have, introduce new ones, and get you curious enough to explore further. Nine dense 1-hour lectures, each with exercises.</div>
+  </div>
+
+  <!-- 01 -->
+  <section id="what">
+    <h2><span class="num">01</span>What is the shell?</h2>
+    <p class="lede">A text interface to your computer: you type a command, it runs programs and shows you their output.</p>
+    <p>GUIs, voice assistants and LLM interfaces cover most everyday needs, but they only offer what someone built in advance — you can't press a button that doesn't exist. Dropping down to the shell gives you the full power of the tools on your machine.</p>
+
+    <div class="grid g2">
+      <div class="card"><span class="pill g">Terminal</span><h4>The window</h4><p>The visual program you open. It displays text and sends your keystrokes to the shell.</p></div>
+      <div class="card"><span class="pill a">Shell</span><h4>The interpreter</h4><p>The program inside the terminal that reads your commands, runs programs and returns output. On Linux/macOS this is usually <b>bash</b>.</p></div>
+    </div>
+
+    <h3>Opening a terminal</h3>
+    <div class="tabs" data-tabs="os">
+      <button class="on" data-t="linux">Linux</button><button data-t="mac">macOS</button><button data-t="win">Windows</button>
+    </div>
+    <div class="tabpanel on" data-group="os" data-id="linux" data-label="Linux"><p>Press <kbd>Ctrl</kbd> + <kbd>Alt</kbd> + <kbd>T</kbd> on most distributions, or search “Terminal” in the app menu. Opens <b>bash</b> by default.</p></div>
+    <div class="tabpanel" data-group="os" data-id="mac" data-label="macOS"><p><kbd>Cmd</kbd> + <kbd>Space</kbd> → type “Terminal” → <kbd>Enter</kbd>. Or Applications → Utilities → Terminal.</p></div>
+    <div class="tabpanel" data-group="os" data-id="win" data-label="Windows"><p><kbd>Win</kbd> + <kbd>R</kbd> → <code>cmd</code> or <code>powershell</code>. These are Windows-specific shells and <b>not</b> what the course uses — install <b>WSL</b> (Windows Subsystem for Linux) or a Linux VM instead.</p></div>
+
+    <div class="callout tip"><div class="ic">✅</div><div>Check you're in a Unix shell: run <code>echo $SHELL</code>. Output like <code>/bin/bash</code> or <code>/usr/bin/zsh</code> means you're set.</div></div>
+
+    <h3>Why bother?</h3>
+    <div class="grid g3">
+      <div class="card"><h4>⚡ Speed</h4><p>Usually much faster than clicking around.</p></div>
+      <div class="card"><h4>🧩 Composability</h4><p>Combine small programs to automate almost anything.</p></div>
+      <div class="card"><h4>🛠 Unavoidable</h4><p>Open-source installs, CI pipelines and debugging all live here.</p></div>
+    </div>
+    <p style="margin-top:12px;font-size:14.5px;color:var(--muted)">Other shells such as <b>zsh</b> and <b>fish</b> add comfort features and share the same core ideas; bash is the focus because it's everywhere.</p>
+  </section>
+
+  <!-- 02 -->
+  <section id="prompt">
+    <h2><span class="num">02</span>Reading the prompt</h2>
+    <p class="lede">The prompt tells you where you are before you type anything. Click each part.</p>
+    <div class="anatomy">
+      <div class="line"><span class="seg" data-k="host">missing</span>:<span class="seg" data-k="cwd">~</span><span class="seg" data-k="dollar">$</span></div>
+      <div class="explain" id="anatomyText">Click a highlighted part of the prompt.</div>
+      <div class="hint no-print">blue = machine · green = current directory · amber = user type</div>
+    </div>
+    <div class="grid g3 print-only" style="margin-top:10px">
+      <div class="card"><h4 style="color:var(--blue)">missing</h4><p>The machine (hostname) you're logged into.</p></div>
+      <div class="card"><h4 style="color:var(--green)">~</h4><p>Current working directory. <code>~</code> is shorthand for your home folder.</p></div>
+      <div class="card"><h4 style="color:var(--amber)">$</h4><p>You're a regular user. A <code>#</code> here means you're root (superuser).</p></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="navigate">
+    <h2><span class="num">03</span>Running commands &amp; navigating</h2>
+    <p class="lede">The shell splits what you type on spaces: the first word is the program, the rest are its arguments.</p>
+
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="p">missing:~$</span> date
+<span class="o">Fri 10 Jan 2020 11:49:31 AM EST</span>
+<span class="p">missing:~$</span> echo hello
+<span class="o">hello</span></pre></div>
+
+    <h3>Arguments with spaces</h3>
+    <div class="grid g3">
+      <div class="card"><span class="pill r">Breaks</span><p><code>cd My Photos</code><br>→ two arguments: <code>My</code> and <code>Photos</code></p></div>
+      <div class="card"><span class="pill g">Quote it</span><p><code>cd "My Photos"</code> or <code>'My Photos'</code></p></div>
+      <div class="card"><span class="pill g">Escape it</span><p><code>cd My\ Photos</code><br>backslash protects the single space</p></div>
+    </div>
+
+    <h3>Getting help</h3>
+    <div class="grid g3">
+      <div class="card"><h4><code>man date</code></h4><p>Full manual page for a command — what it does and every option.</p></div>
+      <div class="card"><h4><code>date --help</code></h4><p>Short built-in help that most commands support.</p></div>
+      <div class="card"><h4><code>tldr date</code></h4><p>Community cheat-sheet of common examples (install separately). LLMs are good at explaining commands too.</p></div>
+    </div>
+
+    <h3>Moving around: <code>cd</code> and <code>pwd</code></h3>
+    <p><code>cd</code> (change directory) sets your current working directory; the prompt updates to match. It is a <b>shell builtin</b>, not a separate program — <code>which cd</code> finds nothing. <code>pwd</code> (or <code>echo $PWD</code>) prints where you are.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="p">missing:~$</span> cd /bin
+<span class="p">missing:/bin$</span> cd /
+<span class="p">missing:/$</span> cd ~
+<span class="p">missing:~$</span></pre></div>
+    <div class="callout tip"><div class="ic">⇥</div><div>Press <kbd>Tab</kbd> to auto-complete paths and command names. Tools like <b>zoxide</b> (<code>z</code>) learn the folders you visit often.</div></div>
+
+    <h3>Absolute vs relative paths</h3>
+    <div class="grid g2">
+      <div class="card"><span class="pill b">Absolute</span><h4>Starts with <code>/</code></h4><p>The full route from the root of the file system. Works the same wherever you are. e.g. <code>/usr/bin</code></p></div>
+      <div class="card"><span class="pill a">Relative</span><h4>Doesn't start with <code>/</code></h4><p>Resolved from your current directory. e.g. from <code>/</code>, <code>cd bin</code> takes you to <code>/bin</code>.</p></div>
+    </div>
+    <p style="margin-top:12px">Every directory contains two special entries: <code>.</code> = this directory, <code>..</code> = the parent directory.</p>
+
+    <div class="widget no-print">
+      <div class="wt">🧭 Path resolver — try it</div>
+      <div class="row">
+        <div><label>Current directory</label><input type="text" id="prCwd" value="/"></div>
+        <div><label>Path you type after <code>cd</code></label><input type="text" id="prPath" value="bin/../bin/././../bin/.."></div>
+      </div>
+      <div class="chips" id="prChips">
+        <button data-c="/home/missing" data-p="../..">../.. from home</button>
+        <button data-c="/" data-p="bin">bin from /</button>
+        <button data-c="/usr/local" data-p="./bin/../share">./bin/../share</button>
+        <button data-c="/home/missing" data-p="~/Downloads">~/Downloads</button>
+        <button data-c="/home/missing/projects" data-p="/etc/../tmp">absolute path</button>
+      </div>
+      <div class="result" id="prOut"></div>
+    </div>
+    <div class="term print-only"><div class="bar"><i></i><i></i><i></i><em>example</em></div><pre><span class="p">missing:~$</span> cd /
+<span class="p">missing:/$</span> cd bin/../bin/././../bin/..
+<span class="p">missing:/$</span>   <span class="c"># each .. undoes a step; each . does nothing</span></pre></div>
+  </section>
+
+  <!-- 04 -->
+  <section id="path">
+    <h2><span class="num">04</span>How the shell finds commands</h2>
+    <p class="lede">When you type <code>echo</code>, the shell searches the folders listed in the <code>$PATH</code> environment variable, left to right, and runs the first executable match.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="p">missing:~$</span> echo $PATH
+<span class="o">/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin</span>
+<span class="p">missing:~$</span> which echo
+<span class="o">/bin/echo</span>
+<span class="p">missing:~$</span> /bin/echo $PATH      <span class="c"># bypass $PATH with a full path</span></pre></div>
+
+    <div class="widget no-print">
+      <div class="wt">🔎 Watch the $PATH lookup</div>
+      <div class="row">
+        <div><label>Command name</label><input type="text" id="plCmd" value="echo"></div>
+        <div style="display:flex;align-items:flex-end;gap:8px"><button class="btn" id="plGo">Search $PATH</button><span class="chips" style="margin:0"><button data-v="sed">sed</button><button data-v="python3">python3</button><button data-v="cd">cd</button><button data-v="frobnicate">frobnicate</button></span></div>
+      </div>
+      <div class="pathdirs" id="plDirs"></div>
+      <div class="result" id="plOut" style="display:none"></div>
+    </div>
+
+    <div class="grid g2" style="margin-top:6px">
+      <div class="card"><h4><code>which prog</code></h4><p>Shows which file on disk will run for a name.</p></div>
+      <div class="card"><h4><code>ls /bin</code></h4><p>List a <code>$PATH</code> folder to see the programs available to you.</p></div>
+    </div>
+  </section>
+
+  <!-- 05 -->
+  <section id="tools">
+    <h2><span class="num">05</span>The core toolkit</h2>
+    <p class="lede">Small programs that each do one thing well. Filter by job:</p>
+    <div class="tabs no-print" id="toolFilter">
+      <button class="on" data-f="all">All</button><button data-f="view">View</button><button data-f="search">Search</button><button data-f="edit">Edit &amp; parse</button>
+    </div>
+    <div class="toolgrid" id="toolgrid">
+      <div class="tool" data-c="view"><div class="nm">cat</div><div class="what">Print a file's contents.</div><code>cat notes.txt</code><div class="alt">Nicer: <b>bat</b> (syntax highlighting, paging)</div></div>
+      <div class="tool" data-c="view"><div class="nm">head / tail</div><div class="what">First / last few lines of a file.</div><code>tail -n 20 app.log</code></div>
+      <div class="tool" data-c="view"><div class="nm">sort</div><div class="what">Print lines in sorted order.</div><code>sort names.txt</code></div>
+      <div class="tool" data-c="view"><div class="nm">uniq</div><div class="what">Drop <i>consecutive</i> duplicate lines — so usually sort first. <code style="display:inline;padding:1px 4px">-c</code> counts.</div><code>sort x | uniq -c</code></div>
+      <div class="tool" data-c="view"><div class="nm">ls</div><div class="what">List files in a directory; <code style="display:inline;padding:1px 4px">-l</code> for details.</div><code>ls -l /</code><div class="alt">Nicer: <b>eza</b></div></div>
+      <div class="tool" data-c="search"><div class="nm">grep</div><div class="what">Lines matching a pattern (a regular expression). <code style="display:inline;padding:1px 4px">-r</code> searches a whole directory.</div><code>grep -r "TODO" .</code><div class="alt">Faster: <b>ripgrep</b> (<code style="display:inline;padding:1px 4px">rg</code>), recursive by default</div></div>
+      <div class="tool" data-c="search"><div class="nm">find</div><div class="what">Recursively find files matching conditions (type, name, age, size).</div><code>find ~/Downloads -type f -name "*.zip" -mtime +30</code><div class="alt">Friendlier: <b>fd</b></div></div>
+      <div class="tool" data-c="edit"><div class="nm">sed</div><div class="what">Programmatic editor — most often for find-and-replace.</div><code>sed -i 's/old/new/g' file</code></div>
+      <div class="tool" data-c="edit"><div class="nm">awk</div><div class="what">Parser for column-structured data; pull out fields, filter rows, aggregate.</div><code>awk '{print $2}' file
+awk -F, '{print $2}' data.csv</code></div>
+    </div>
+
+    <h3>Anatomy of a <code>sed</code> substitution</h3>
+    <div class="sed">
+      <span style="background:#ece8dc">sed</span><span style="background:var(--amber-soft)">-i</span><span style="background:#ece8dc">'</span><span style="background:var(--blue-soft)">s</span><span>/</span><span style="background:var(--green-soft)">pattern</span><span>/</span><span style="background:#f1e3f5">replacement</span><span>/</span><span style="background:var(--red-soft)">g</span><span style="background:#ece8dc">'</span><span style="background:#ece8dc">file</span>
+    </div>
+    <div class="sedlegend">
+      <div style="background:var(--amber-soft)"><b>-i</b> edit the file in place (otherwise just print the result)</div>
+      <div style="background:var(--blue-soft)"><b>s</b> “substitute” command</div>
+      <div style="background:var(--green-soft)"><b>pattern</b> a regular expression to match</div>
+      <div style="background:#f1e3f5"><b>replacement</b> can refer back to captured groups like <code>\1</code></div>
+      <div style="background:var(--red-soft)"><b>g</b> replace every match on a line, not just the first</div>
+    </div>
+
+    <h3><code>find</code> recipes</h3>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="c"># ZIPs in Downloads older than 30 days</span>
+find ~/Downloads -type f -name "*.zip" -mtime +30
+
+<span class="c"># files over 100 MB in home, listed with sizes</span>
+find ~ -type f -size +100M -exec ls -lh {} \;
+
+<span class="c"># Python files that contain a TODO</span>
+find . -name "*.py" -exec grep -l "TODO" {} \;</pre></div>
+    <div class="callout info"><div class="ic">💡</div><div>In <code>-exec … {} \;</code>, <code>{}</code> is replaced by each matching path, and the <code>;</code> that ends the command must be escaped as <code>\;</code> so the shell doesn't eat it.</div></div>
+  </section>
+
+  <!-- 06 -->
+  <section id="pipeline">
+    <h2><span class="num">06</span>Pipeline walkthrough</h2>
+    <p class="lede">The lecture's showpiece: find the 10 usernames most often used in failed SSH logins on a server — in one command. Step through it.</p>
+    <div class="pipectl no-print">
+      <button class="btn ghost" id="pPrev">← Back</button>
+      <button class="btn" id="pNext">Next stage →</button>
+      <button class="btn ghost" id="pAll">Show all</button>
+    </div>
+    <div class="pipe" id="pipe"></div>
+    <p style="font-size:13px;color:var(--muted)">Intermediate output above is illustrative sample data; the final line matches the lecture's result.</p>
+  </section>
+
+  <!-- 07 -->
+  <section id="bash">
+    <h2><span class="num">07</span>The bash language</h2>
+    <p class="lede">Every command you type is a small program. Bash has variables, conditionals, loops and functions.</p>
+
+    <h3>Pipes <code>|</code></h3>
+    <p>Most tools read <b>standard input</b> when no file is given. A pipe connects the <b>standard output</b> of the left program to the standard input of the right one — that's what makes composition possible.</p>
+
+    <h3>Redirects</h3>
+    <table>
+      <tr><th>Syntax</th><th>Meaning</th><th>Example</th></tr>
+      <tr><td><code>&gt; file</code></td><td>Send stdout to a file (overwrite)</td><td><code>ls &gt; files.txt</code></td></tr>
+      <tr><td><code>&gt;&gt; file</code></td><td>Append stdout to a file</td><td><code>date &gt;&gt; log.txt</code></td></tr>
+      <tr><td><code>&lt; file</code></td><td>Read stdin from a file</td><td><code>sort &lt; names.txt</code></td></tr>
+      <tr><td><code>2&gt; file</code></td><td>Send stderr (errors) to a file</td><td><code>ls /nope 2&gt; err.txt</code></td></tr>
+      <tr><td><code>&gt; f 2&gt;&amp;1</code></td><td>stdout and stderr to the same file</td><td><code>make &gt; build.log 2&gt;&amp;1</code></td></tr>
+      <tr><td><code>| tee f</code></td><td>Save a copy to a file <i>and</i> pass it on</td><td><code>cmd | tee full.log | grep CRITICAL</code></td></tr>
+    </table>
+    <div class="grid g3">
+      <div class="card"><span class="pill b">0</span><h4>stdin</h4><p>Input — your keystrokes by default.</p></div>
+      <div class="card"><span class="pill g">1</span><h4>stdout</h4><p>Normal output to the terminal.</p></div>
+      <div class="card"><span class="pill r">2</span><h4>stderr</h4><p>Error messages, kept separate.</p></div>
+    </div>
+
+    <h3>Conditionals</h3>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="k">if</span> [ -f notes.txt ]; <span class="k">then</span>
+  echo <span class="s">"found it"</span>
+<span class="k">else</span>
+  echo <span class="s">"missing"</span>
+<span class="k">fi</span></pre></div>
+    <p>The condition is just a command: it “succeeds” if it exits with status <b>0</b>. Most often it's <code>test</code>, written as <code>[ … ]</code> — e.g. <code>[ -f file ]</code> (file exists) or <code>[ "$var" = "text" ]</code>. In bash, prefer <code>[[ … ]]</code>, a builtin with fewer quoting surprises.</p>
+    <div class="grid g3">
+      <div class="card"><h4><code>$?</code></h4><p>Exit status of the last command (0 = success).</p></div>
+      <div class="card"><h4><code>a &amp;&amp; b</code></h4><p>Run <code>b</code> only if <code>a</code> succeeded.</p></div>
+      <div class="card"><h4><code>a || b</code></h4><p>Run <code>b</code> only if <code>a</code> failed.</p></div>
+    </div>
+
+    <h3>Loops &amp; command substitution</h3>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="c"># repeat while a command keeps succeeding</span>
+<span class="k">while</span> ping -c1 host &gt;/dev/null; <span class="k">do</span> sleep 5; <span class="k">done</span>
+
+<span class="c"># iterate over a list</span>
+<span class="k">for</span> f <span class="k">in</span> a b c d; <span class="k">do</span> echo <span class="s">"$f"</span>; <span class="k">done</span>
+
+<span class="c"># $( ) runs a command and splices in its output</span>
+<span class="k">for</span> i <span class="k">in</span> $(seq 1 10); <span class="k">do</span> echo <span class="s">"run $i"</span>; <span class="k">done</span></pre></div>
+    <div class="callout warn"><div class="ic">⚠️</div><div>Old scripts use backticks <code>`seq 1 10`</code>. Prefer <code>$( )</code> — it can be nested.</div></div>
+  </section>
+
+  <!-- 08 -->
+  <section id="scripts">
+    <h2><span class="num">08</span>Writing scripts</h2>
+    <p class="lede">Once a command grows, put it in a <code>.sh</code> file. This one reruns a test until it fails while the CPU is under load — handy for flaky tests.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>flaky.sh</em></div><button class="copy">Copy</button><pre><span class="c">#!/bin/bash</span>
+set -euo pipefail
+
+<span class="c"># Start CPU stress in background</span>
+stress --cpu 8 &amp;
+STRESS_PID=$!
+
+<span class="c"># Setup log file</span>
+LOGFILE=<span class="s">"test_runs_$(date +%s).log"</span>
+echo <span class="s">"Logging to $LOGFILE"</span>
+
+<span class="c"># Run tests until one fails</span>
+RUN=1
+<span class="k">while</span> cargo test my_test &gt; <span class="s">"$LOGFILE"</span> 2&gt;&amp;1; <span class="k">do</span>
+    echo <span class="s">"Run $RUN passed"</span>
+    ((RUN++))
+<span class="k">done</span>
+
+<span class="c"># Cleanup and report</span>
+kill $STRESS_PID
+echo <span class="s">"Test failed on run $RUN"</span>
+echo <span class="s">"Last 20 lines of output:"</span>
+tail -n 20 <span class="s">"$LOGFILE"</span>
+echo <span class="s">"Full log: $LOGFILE"</span></pre></div>
+
+    <div class="grid g3">
+      <div class="card"><h4><code>&amp;</code></h4><p>Run a command in the background so the script continues.</p></div>
+      <div class="card"><h4><code>$!</code></h4><p>PID of the last background job — used later to <code>kill</code> it.</p></div>
+      <div class="card"><h4><code>((RUN++))</code></h4><p>Arithmetic expansion: integer maths inside bash.</p></div>
+    </div>
+
+    <h3>The shebang <code>#!</code></h3>
+    <p>If an executable file starts with <code>#!/path/to/program</code>, running it launches that program and hands it the file. So <code>#!/bin/bash</code> runs the script in bash — and <code>#!/usr/bin/python3</code> works for Python scripts too. You also need execute permission: <code>chmod +x flaky.sh</code>, then <code>./flaky.sh</code>.</p>
+
+    <h3>Strict mode: <code>set -euo pipefail</code> <span class="no-print" style="font-size:13px;font-weight:400;color:var(--muted)">— click each flag</span></h3>
+    <div class="flags">
+      <div class="flag"><div class="f">-e</div><div class="s">exit on error</div><div class="d">If any command fails, the script stops right there instead of ploughing on.</div></div>
+      <div class="flag"><div class="f">-u</div><div class="s">no undefined vars</div><div class="d">Using a variable that was never set crashes the script, instead of silently becoming an empty string.</div></div>
+      <div class="flag"><div class="f">-o pipefail</div><div class="s">pipes can fail</div><div class="d">If any program inside a <code>|</code> chain fails, the whole pipeline counts as failed.</div></div>
+    </div>
+    <div class="callout bad"><div class="ic">🪤</div><div>Bash is full of gotchas. Run your scripts through <b>shellcheck</b>. Once a script passes ~100 lines, consider rewriting it in a “real” language like Python — LLMs are good at that translation.</div></div>
+  </section>
+
+  <!-- 09 -->
+  <section id="sandbox" class="no-print">
+    <h2><span class="num">09</span>Practice terminal</h2>
+    <p class="lede">A tiny simulated shell with a fake file system. Try <code>pwd</code>, <code>ls</code>, <code>cd Downloads</code>, <code>cd ..</code>, <code>cat notes.txt</code>, <code>which echo</code>, <code>echo $PATH</code>. Type <code>help</code> for the list.</p>
+    <div class="sandbox">
+      <div class="term" style="margin:0;border-radius:0"><div class="bar"><i></i><i></i><i></i><em>practice — simulated bash</em></div></div>
+      <div class="screen" id="screen"></div>
+    </div>
+    <p style="font-size:13px;color:var(--muted);margin-top:8px">Simulation only — nothing runs on your computer. ↑/↓ recall previous commands, Tab completes names.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="upgrades">
+    <h2><span class="num">10</span>Upgrades &amp; extras</h2>
+    <p class="lede">The lecture's side notes: modern, friendlier alternatives worth installing. The classics stay more portable.</p>
+    <table>
+      <tr><th>Classic</th><th>Try</th><th>Why</th></tr>
+      <tr><td><code>man</code></td><td><b>tldr</b></td><td>Shows common usage examples right in the terminal</td></tr>
+      <tr><td><code>cd</code></td><td><b>zoxide</b></td><td><code>z</code> remembers frequent folders — less typing</td></tr>
+      <tr><td><code>ls</code></td><td><b>eza</b></td><td>More human-friendly listings</td></tr>
+      <tr><td><code>cat</code></td><td><b>bat</b></td><td>Syntax highlighting and scrolling</td></tr>
+      <tr><td><code>grep</code></td><td><b>ripgrep</b></td><td>Faster, recursive by default (less portable)</td></tr>
+      <tr><td><code>find</code></td><td><b>fd</b></td><td>Simpler syntax (less portable)</td></tr>
+      <tr><td>—</td><td><b>tee</b></td><td>Write a stream to a file and keep passing it along</td></tr>
+      <tr><td>bash scripts</td><td><b>shellcheck</b></td><td>Catches common scripting bugs</td></tr>
+    </table>
+  </section>
+
+  <!-- 11 -->
+  <section id="quiz">
+    <h2><span class="num">11</span>Self-check quiz</h2>
+    <p class="lede"><span class="no-print">Pick an answer to see the explanation. Score: <span class="score" id="score">0 / 0</span></span><span class="print-only">Answer key — correct options are highlighted.</span></p>
+    <div id="quizbox"></div>
+    <button class="btn ghost no-print" id="quizReset">Reset quiz</button>
+  </section>
+
+  <!-- 12 -->
+  <section id="exercises">
+    <h2><span class="num">12</span>Exercises</h2>
+    <p class="lede">From the lecture (paraphrased). No official solutions — the point is the exploring. <span class="no-print">Tick them off as you go; progress is saved in this browser.</span></p>
+    <div class="no-print"><div class="exbar"><div id="exfill"></div></div><div style="font-size:13px;color:var(--muted)" id="excount"></div></div>
+    <div id="exlist"></div>
+  </section>
+
+  <!-- 13 -->
+  <section id="cheat">
+    <h2><span class="num">13</span>Cheat sheet</h2>
+    <div class="cheat">
+      <h4>Navigate</h4>
+      <div class="r"><code>pwd</code><span>where am I?</span></div>
+      <div class="r"><code>cd dir</code><span>go to dir (<code>cd</code> alone → home)</span></div>
+      <div class="r"><code>cd ..</code><span>up one level</span></div>
+      <div class="r"><code>ls -l</code><span>detailed listing</span></div>
+      <h4>Help</h4>
+      <div class="r"><code>man cmd</code><span>full manual</span></div>
+      <div class="r"><code>cmd --help</code><span>quick help</span></div>
+      <div class="r"><code>which cmd</code><span>which file runs</span></div>
+      <div class="r"><code>echo $PATH</code><span>program search folders</span></div>
+      <h4>Text</h4>
+      <div class="r"><code>cat / head / tail</code><span>show all / start / end</span></div>
+      <div class="r"><code>sort | uniq -c</code><span>count duplicate lines</span></div>
+      <div class="r"><code>grep -r pat .</code><span>search recursively</span></div>
+      <div class="r"><code>sed 's/a/b/g'</code><span>replace a → b</span></div>
+      <div class="r"><code>awk '{print $2}'</code><span>2nd column</span></div>
+      <div class="r"><code>find . -name "*.py"</code><span>find files by name</span></div>
+      <h4>Plumbing</h4>
+      <div class="r"><code>a | b</code><span>a's output → b's input</span></div>
+      <div class="r"><code>&gt; / &gt;&gt; / &lt;</code><span>write / append / read file</span></div>
+      <div class="r"><code>2&gt;&amp;1</code><span>merge stderr into stdout</span></div>
+      <div class="r"><code>a &amp;&amp; b / a || b</code><span>on success / on failure</span></div>
+      <div class="r"><code>$(cmd)</code><span>insert cmd's output</span></div>
+      <div class="r"><code>cmd &amp;</code><span>run in background</span></div>
+      <h4>Scripts</h4>
+      <div class="r"><code>#!/bin/bash</code><span>shebang line</span></div>
+      <div class="r"><code>set -euo pipefail</code><span>strict mode</span></div>
+      <div class="r"><code>chmod +x s.sh</code><span>make executable</span></div>
+      <div class="r"><code>$1 / $@ / $?</code><span>1st arg / all args / last status</span></div>
+    </div>
+  </section>
+
+  <footer>Notes based on <a href="https://missing.csail.mit.edu/2026/course-shell/">“Course Overview + Introduction to the Shell”</a>, The Missing Semester of Your CS Education (MIT, 2026) by Anish, Jon &amp; Jose — licensed CC BY-NC-SA. These notes are shared under the same licence.<span class="print-only" style="margin-top:4px">Interactive version: <a href="https://greymatter1005.github.io/missing-semester-notes/shell-intro.html">https://greymatter1005.github.io/missing-semester-notes/shell-intro.html</a></span></footer>
+</main>
+</div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+/* hero typing */
+const words=['ls','cd ~/projects','grep -r "TODO" .','sort | uniq -c','man bash'];
+let wi=0,ci=0,del=false;const te=$('#typed');
+(function tick(){const w=words[wi];
+  if(!del){te.textContent=w.slice(0,++ci);if(ci===w.length){del=true;return setTimeout(tick,1400);}}
+  else{te.textContent=w.slice(0,--ci);if(ci===0){del=false;wi=(wi+1)%words.length;}}
+  setTimeout(tick,del?40:85);})();
+
+/* progress + toc */
+const links=$$('#toc a'), secs=links.map(a=>$(a.getAttribute('href')));
+function onScroll(){const h=document.documentElement;$('#progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=0;secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<120)cur=i;});links.forEach((a,i)=>a.classList.toggle('active',i===cur));}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+
+/* copy buttons */
+$$('.copy').forEach(b=>b.addEventListener('click',async()=>{
+  const pre=b.parentElement.querySelector('pre');let txt=pre.innerText.split('\n').map(l=>l.replace(/^missing:[^$]*\$ ?/,'')).filter((l,i,a)=>true).join('\n');
+  try{await navigator.clipboard.writeText(txt);b.textContent='Copied ✓';}catch(e){b.textContent='Select & copy';}
+  setTimeout(()=>b.textContent='Copy',1500);}));
+
+/* tabs */
+$$('.tabs[data-tabs]').forEach(t=>{const g=t.dataset.tabs;t.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $$('button',t).forEach(x=>x.classList.toggle('on',x===b));$$(`.tabpanel[data-group="${g}"]`).forEach(p=>p.classList.toggle('on',p.dataset.id===b.dataset.t));});});
+
+/* prompt anatomy */
+const AN={host:'<b style="color:#7fb3ff">missing</b> — the name of the machine you are logged into (its hostname). Useful when you SSH into several servers.',
+ cwd:'<b style="color:#6fdc9d">~</b> — your current working directory. <code>~</code> is shorthand for your home folder; after <code>cd /bin</code> this would read <code>/bin</code>.',
+ dollar:'<b style="color:#f2b55a">$</b> — you are a regular user. If you see <code>#</code> instead, you are root (the all-powerful superuser), so be careful.'};
+$$('.anatomy .seg').forEach(s=>s.addEventListener('click',()=>{$$('.anatomy .seg').forEach(x=>x.classList.toggle('on',x===s));$('#anatomyText').innerHTML=AN[s.dataset.k];}));
+
+/* path resolver */
+function resolve(cwd,p,home='/home/missing'){const steps=[];let parts;
+  if(p.startsWith('~')){p=home+p.slice(1);steps.push(`~ expands to ${home}`);}
+  if(p.startsWith('/')){parts=[];steps.push('starts with / → absolute, begin at root /');}
+  else{parts=cwd.split('/').filter(Boolean);steps.push(`relative → begin at current dir ${cwd||'/'}`);}
+  p.split('/').filter(Boolean).forEach(c=>{
+    if(c==='.'){steps.push('.  → stay in /'+parts.join('/'));}
+    else if(c==='..'){parts.pop();steps.push('.. → up to /'+parts.join('/'));}
+    else{parts.push(c);steps.push(`${c} → into /${parts.join('/')}`);}});
+  return {steps,final:'/'+parts.join('/')};}
+function runPR(){let c=$('#prCwd').value.trim()||'/';if(!c.startsWith('/'))c='/'+c;const r=resolve(c,$('#prPath').value.trim());
+  $('#prOut').innerHTML=r.steps.map(s=>`<div class="step">› ${esc(s)}</div>`).join('')+`<div class="final">You end up in: ${esc(r.final)}</div>`;}
+['prCwd','prPath'].forEach(id=>$('#'+id).addEventListener('input',runPR));
+$('#prChips').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$('#prCwd').value=b.dataset.c;$('#prPath').value=b.dataset.p;runPR();});
+runPR();
+
+/* PATH lookup */
+const PDIRS=['/usr/local/sbin','/usr/local/bin','/usr/sbin','/usr/bin','/sbin','/bin'];
+const WHERE={echo:'/bin',sed:'/bin',ls:'/bin',cat:'/bin',grep:'/bin',date:'/bin',python3:'/usr/bin',awk:'/usr/bin',find:'/usr/bin',sort:'/usr/bin',git:'/usr/bin',rg:'/usr/local/bin',fd:'/usr/local/bin',bat:'/usr/local/bin'};
+const plDirs=$('#plDirs');function drawDirs(){plDirs.innerHTML=PDIRS.map(d=>`<div><span>${d}</span><span></span></div>`).join('');}drawDirs();
+let plTimer=[];function lookup(){plTimer.forEach(clearTimeout);plTimer=[];drawDirs();const cmd=$('#plCmd').value.trim();const out=$('#plOut');out.style.display='none';
+  if(!cmd)return;const rows=$$('div',plDirs);
+  if(cmd==='cd'||cmd==='pwd'&&false){out.style.display='block';out.innerHTML=`<div class="final">cd is a shell builtin — the shell handles it itself, no $PATH search happens.</div><div class="step">(A separate program can't change its parent shell's directory.)</div>`;return;}
+  const hit=WHERE[cmd];let i=0;
+  for(;i<rows.length;i++){((k)=>{plTimer.push(setTimeout(()=>{rows.forEach(r=>r.classList.remove('scan'));const r=rows[k];
+      if(hit===PDIRS[k]){r.classList.add('hit');r.lastChild.textContent='✓ found '+cmd;out.style.display='block';out.innerHTML=`<div class="final">runs ${PDIRS[k]}/${esc(cmd)}</div><div class="step">which ${esc(cmd)} → ${PDIRS[k]}/${esc(cmd)}</div>`;plTimer.forEach(clearTimeout);}
+      else{r.classList.add('miss');r.lastChild.textContent='✗';if(k===rows.length-1){out.style.display='block';out.innerHTML=`<div style="color:#ff8f86">bash: ${esc(cmd)}: command not found</div><div class="step">checked every directory in $PATH — no match</div>`;}}
+    },350*k));})(i);}}
+$('#plGo').addEventListener('click',lookup);$('#plCmd').addEventListener('keydown',e=>{if(e.key==='Enter')lookup();});
+$$('[data-v]').forEach(b=>b.addEventListener('click',()=>{$('#plCmd').value=b.dataset.v;lookup();}));
+
+/* tool filter */
+$('#toolFilter').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#toolFilter button').forEach(x=>x.classList.toggle('on',x===b));
+  $$('#toolgrid .tool').forEach(t=>t.classList.toggle('hide',b.dataset.f!=='all'&&t.dataset.c!==b.dataset.f));});
+
+/* pipeline */
+const STAGES=[
+ {cmd:`ssh myserver 'journalctl -u sshd -b-1 | grep "Disconnected from"'`,
+  why:'Log into the server, read the SSH daemon\'s logs from the previous boot, and keep only “Disconnected from” lines. The quoted part runs remotely; its output streams back to you.',
+  out:`Jan 17 03:13:00 srv sshd[2631]: Disconnected from invalid user admin 46.97.239.16 port 55920 [preauth]
+Jan 17 03:13:07 srv sshd[2633]: Disconnected from authenticating user root 112.85.42.88 port 43122 [preauth]
+Jan 17 03:14:12 srv sshd[2640]: Disconnected from invalid user test 139.59.1.2 port 51044 [preauth]
+…thousands more…`},
+ {cmd:`sed -E 's/.*Disconnected from .* user (.*) [^ ]+ port.*/\\1/'`,
+  why:'Regex substitution with a capture group: match the whole line, capture the word after “user”, and replace the line with just that capture (\\1).',
+  out:`admin
+root
+test
+root
+…`},
+ {cmd:`sort | uniq -c`,
+  why:'Sort so identical names sit next to each other, then uniq -c collapses each run into one line with a count.',
+  out:`    412 admin
+     37 dell
+   2105 root
+    186 test
+…`},
+ {cmd:`sort -nk1,1 | tail -n10`,
+  why:'Sort numerically (-n) by the first column only (-k1,1), smallest first; tail keeps the last 10 — the top 10 most frequent.',
+  out:`     37 postgres
+     41 mysql
+    …
+    412 admin
+   1033 user
+   2105 root`},
+ {cmd:`awk '{print $2}'`,
+  why:'Drop the counts — print only the second whitespace-separated column, the username.',
+  out:`postgres
+mysql
+…
+user
+root`},
+ {cmd:`paste -sd,`,
+  why:'Join all lines into a single line (-s), separated by commas (-d,).',
+  out:`postgres,mysql,oracle,dell,ubuntu,inspur,test,admin,user,root`}];
+const pipe=$('#pipe');pipe.innerHTML=STAGES.map((s,i)=>`<div class="stage" data-i="${i}"><div class="dot"><b>${i+1}</b><i></i></div><div class="body"><div class="cmd">${i?'| ':''}${esc(s.cmd)}</div><div class="why">${s.why}</div><div class="out term"><pre>${esc(s.out)}</pre></div></div></div>`).join('');
+let pi=0,all=false;function drawPipe(){$$('.stage',pipe).forEach((s,i)=>{s.classList.toggle('on',i<=pi);s.classList.toggle('cur',all?true:i===pi);});$('#pPrev').disabled=pi===0;$('#pNext').disabled=pi===STAGES.length-1;$('#pAll').textContent=all?'Step mode':'Show all';}
+$('#pNext').onclick=()=>{pi=Math.min(pi+1,STAGES.length-1);all=false;drawPipe();};$('#pPrev').onclick=()=>{pi=Math.max(pi-1,0);all=false;drawPipe();};
+$('#pAll').onclick=()=>{all=!all;if(all)pi=STAGES.length-1;drawPipe();};
+pipe.addEventListener('click',e=>{const s=e.target.closest('.stage');if(!s)return;pi=+s.dataset.i;all=false;drawPipe();});drawPipe();
+
+/* flags */
+$$('.flag').forEach(f=>f.addEventListener('click',()=>f.classList.toggle('on')));
+
+/* quiz */
+const Q=[
+ {q:'What is the difference between a terminal and a shell?',o:['They are the same thing','The terminal is the window; the shell interprets your commands inside it','The shell is the window; the terminal runs programs','The terminal only exists on Linux'],a:1,e:'The terminal is the visual interface; the shell (e.g. bash) is the program that reads and runs what you type.'},
+ {q:'Why does <code>which cd</code> find nothing?',o:['cd is not installed','cd lives in /usr/sbin, outside $PATH','cd is a shell builtin, not a separate program','which only works for files'],a:2,e:'A child process cannot change its parent\'s working directory, so cd must be built into the shell itself.'},
+ {q:'You are in <code>/usr/local</code>. Where does <code>cd ../bin</code> take you?',o:['/usr/local/bin','/usr/bin','/bin','/usr/local/../bin (literally)'],a:1,e:'.. goes up from /usr/local to /usr, then bin → /usr/bin.'},
+ {q:'How does the shell find the program to run for <code>sort</code>?',o:['Searches the whole disk','Looks in the current directory only','Searches the folders in $PATH in order and runs the first match','Asks the package manager'],a:2,e:'$PATH is a colon-separated list of folders; the shell checks them left to right.'},
+ {q:'Why do you usually run <code>sort</code> before <code>uniq</code>?',o:['uniq only removes consecutive duplicates','uniq needs numeric input','sort makes uniq faster but it is optional','uniq deletes unsorted lines'],a:0,e:'uniq only collapses adjacent identical lines, so sorting groups duplicates together first.'},
+ {q:'In <code>sed -i \'s/cat/dog/g\' pets.txt</code>, what does the trailing <code>g</code> do?',o:['Makes the match case-insensitive','Replaces every match on each line, not only the first','Edits the file in place','Prints only changed lines'],a:1,e:'g = global per line. Without it, only the first match on each line is replaced. -i is what edits the file in place.'},
+ {q:'Which command appends today\'s date to <code>log.txt</code> without erasing it?',o:['date > log.txt','date | log.txt','date >> log.txt','date < log.txt'],a:2,e:'>> appends; > overwrites; < reads input from a file; | needs a program on the right.'},
+ {q:'What does <code>set -u</code> do in a script?',o:['Runs as root','Exits if any command fails','Makes undefined variables an error instead of empty strings','Updates bash'],a:2,e:'-u catches typos in variable names. -e exits on failed commands; -o pipefail catches failures inside pipes.'},
+ {q:'<code>mkdir /tmp/mydir || echo "exists"</code> prints “exists” when…',o:['mkdir succeeds','mkdir fails','always','never'],a:1,e:'|| runs the right side only when the left side fails (non-zero exit status).'},
+ {q:'What does <code>#!/bin/bash</code> at the top of a file do?',o:['It is just a comment','Tells the system to run the file with /bin/bash when executed','Makes the file executable','Imports bash libraries'],a:1,e:'The shebang picks the interpreter. You still need chmod +x to make the file executable.'}];
+const qb=$('#quizbox');let answered={};
+function drawQuiz(){qb.innerHTML=Q.map((x,i)=>`<div class="q" data-i="${i}"><div class="qt">${i+1}. ${x.q}</div><div class="opts">${x.o.map((o,j)=>`<button class="opt" data-j="${j}" ${j===x.a?'data-right':''}>${String.fromCharCode(65+j)}. ${o}</button>`).join('')}</div><div class="ex">💡 ${x.e}</div></div>`).join('');answered={};score();}
+function score(){const n=Object.keys(answered).length,c=Object.values(answered).filter(Boolean).length;$('#score').textContent=`${c} / ${n}`+(n===Q.length?` — ${c>=8?'great work!':c>=5?'solid, review the misses':'re-read sections 03–07'}`:'');}
+qb.addEventListener('click',e=>{const b=e.target.closest('button.opt');if(!b)return;const q=b.closest('.q'),i=+q.dataset.i;if(q.classList.contains('done'))return;
+  const ok=+b.dataset.j===Q[i].a;b.classList.add(ok?'right':'wrong');if(!ok)q.querySelector('[data-right]').classList.add('right');q.classList.add('done');answered[i]=ok;score();});
+$('#quizReset').onclick=drawQuiz;drawQuiz();
+
+/* exercises */
+const EX=[
+ ['Getting oriented',[
+  ['Run <code>ls -l /</code>. What do the first 10 characters on each line mean?','See <code>man ls</code>. The first char is the file type; the next nine are read/write/execute permissions for owner, group, others.'],
+  ['What is a <b>glob</b> (like <code>*.zip</code>)? Make a test folder and try <code>ls *.txt</code>, <code>ls file?.txt</code>, <code>ls {a,b,c}.txt</code>.','Bash manual → “Pattern Matching”. <code>*</code> = any characters, <code>?</code> = one character, <code>{a,b}</code> = brace expansion.'],
+  ['Why must <code>cd</code> be built into the shell rather than be its own program?','Think about what a child process can and cannot change in its parent.']]],
+ ['Quoting, streams & exit codes',[
+  ['Compare <code>\'single\'</code>, <code>"double"</code> and <code>$\'ANSI\'</code> quotes. Echo a string containing a literal <code>$</code>, a <code>!</code> and a newline.','Bash manual → “Quoting”.'],
+  ['Run <code>ls /nonexistent /tmp</code>, sending stdout to one file and stderr to another. Then send both to one file.','Bash manual → “Redirections”. Look at <code>2&gt;</code> and <code>2&gt;&amp;1</code>.'],
+  ['Write a one-liner that creates <code>/tmp/mydir</code> only if it doesn\'t exist yet.','Use <code>&amp;&amp;</code> / <code>||</code> and <code>$?</code>. Bash manual → “Exit Status”.']]],
+ ['Scripts',[
+  ['Write a script that takes a filename as <code>$1</code> and prints different messages depending on whether it exists.','Use <code>[ -f "$1" ]</code>. Bash manual → “Conditional Expressions”.'],
+  ['Save it as <code>check.sh</code> and run <code>./check.sh somefile</code>. What happens? Now <code>chmod +x check.sh</code> and retry — why is this needed?','Compare <code>ls -l check.sh</code> before and after.'],
+  ['Add <code>-x</code> to the <code>set</code> flags in a small script. What changes in the output?','Bash manual → “The Set Builtin”.'],
+  ['Copy a file to a backup with today\'s date in its name (e.g. <code>notes_2026-01-12.txt</code>).','<code>$(date +%Y-%m-%d)</code> — command substitution.'],
+  ['Make the flaky-test script accept the test command as an argument instead of hard-coding it.','<code>$1</code> or <code>"$@"</code>. Bash manual → “Special Parameters”.']]],
+ ['Pipelines & tools',[
+  ['Use pipes to find the 5 most common file extensions in your home directory.','Combine <code>find</code>, <code>sed</code>/<code>awk</code>, <code>sort</code>, <code>uniq -c</code>, <code>head</code>.'],
+  ['Use <code>find</code> + <code>xargs</code> (not <code>-exec</code>) to count lines in every <code>.sh</code> file with <code>wc -l</code>. Bonus: handle spaces in filenames.','<code>find … -print0 | xargs -0 …</code>'],
+  ['<code>curl</code> the course homepage and pipe to <code>grep</code> to count the lectures listed.','Use <code>curl -s</code> to hide the progress bar; find a pattern that appears once per lecture.'],
+  ['Fetch the sample JSON with <code>curl</code> and use <code>jq</code> to list names of people whose version is greater than 6.','Start with <code>jq .</code> to see the structure, then <code>jq \'.[] | select(...) | .name\'</code>. URL: microsoftedge.github.io/Demos/json-dummy-data/64KB.json'],
+  ['Write an <code>awk</code> command that keeps only lines where column 2 &gt; 100 and swaps columns 1 and 3.','Test input: <code>printf \'a 50 x\\nb 150 y\\nc 200 z\\n\'</code>'],
+  ['Explain each stage of the SSH-log pipeline, then build one that finds your most-used commands from <code>~/.bash_history</code> (or <code>~/.zsh_history</code>).','Section 06 above walks through the original.']]]];
+let done={};try{done=JSON.parse(localStorage.getItem('shellnotes-ex')||'{}');}catch(e){}
+let k=0;$('#exlist').innerHTML=EX.map(([g,items])=>`<div class="exgroup"><h4>${g}</h4>${items.map(([t,h])=>{const id='e'+(k++);return `<div class="ex-item ${done[id]?'checked':''}" data-id="${id}"><input type="checkbox" ${done[id]?'checked':''} aria-label="done"><div><div class="t">${k}. ${t}</div><button class="hintbtn">Show hint</button><div class="h">💡 ${h}</div></div></div>`;}).join('')}</div>`).join('');
+function exProg(){const tot=k,n=$$('.ex-item input:checked').length;$('#exfill').style.width=(n/tot*100)+'%';$('#excount').textContent=`${n} of ${tot} done`;}
+$('#exlist').addEventListener('change',e=>{const it=e.target.closest('.ex-item');it.classList.toggle('checked',e.target.checked);done[it.dataset.id]=e.target.checked;try{localStorage.setItem('shellnotes-ex',JSON.stringify(done));}catch(err){}exProg();});
+$('#exlist').addEventListener('click',e=>{if(!e.target.classList.contains('hintbtn'))return;const it=e.target.closest('.ex-item');it.classList.toggle('showhint');e.target.textContent=it.classList.contains('showhint')?'Hide hint':'Show hint';});
+exProg();
+
+/* sandbox */
+const FS={'/':['bin/','home/','usr/','tmp/','etc/'],'/bin':['cat','date','echo','grep','ls','sed','pwd'],'/usr':['bin/','local/'],'/usr/bin':['awk','find','python3','sort','uniq','head','tail'],'/usr/local':['bin/'],'/usr/local/bin':['rg','fd','bat'],
+ '/home':['missing/'],'/home/missing':['notes.txt','todo.txt','Downloads/','projects/'],'/home/missing/Downloads':['lecture1.pdf','old-stuff.zip','My Photos/'],'/home/missing/Downloads/My Photos':['beach.jpg','cat.png'],'/home/missing/projects':['flaky.sh','app.py'],'/tmp':[],'/etc':['hostname','passwd']};
+const FILES={'/home/missing/notes.txt':'Shell notes\n- man before Google\n- Tab completes paths\n- sort before uniq','/home/missing/todo.txt':'learn sed\nlearn awk\nlearn sed\nread man bash','/home/missing/projects/flaky.sh':'#!/bin/bash\nset -euo pipefail\nwhile cargo test my_test; do echo pass; done','/home/missing/projects/app.py':'# TODO: add tests\nprint("hello")','/etc/hostname':'missing'};
+const HOME='/home/missing',PATHV=PDIRS.join(':'),BUILTIN=['cd','echo','pwd','help','clear','history','which','type'];
+let cwd=HOME,hist=[],hi=0;const scr=$('#screen');
+const short=d=>d===HOME?'~':d.startsWith(HOME+'/')?'~'+d.slice(HOME.length):d;
+const isDir=p=>p in FS, isFile=p=>p in FILES||Object.entries(FS).some(([d,l])=>l.includes(p.split('/').pop())&&(d==='/'?'/':d+'/')+p.split('/').pop()===p);
+function absP(p){if(!p)return cwd;return resolve(cwd,p.replace(/\/$/,''),HOME).final;}
+function line(html){const d=document.createElement('div');d.className='ln';d.innerHTML=html;scr.insertBefore(d,inrow);}
+const MAN={ls:'ls — list directory contents. -l long format, -a include hidden files.',cd:'cd — change the working directory (shell builtin).',pwd:'pwd — print name of current/working directory.',echo:'echo — display a line of text (expands $VARS).',cat:'cat — concatenate files and print on the standard output.',date:'date — print the system date and time.',which:'which — locate a command on $PATH.',grep:'grep PATTERN FILE — print lines matching a pattern.',sort:'sort FILE — sort lines of text.',uniq:'uniq FILE — report or omit repeated (adjacent) lines.',head:'head FILE — first lines.',tail:'tail FILE — last lines.'};
+function tokenize(s){const out=[];let cur='',q=null,has=false;for(let i=0;i<s.length;i++){const c=s[i];
+  if(q){if(c===q)q=null;else cur+=c;continue;}
+  if(c==='"'||c==="'"){q=c;has=true;continue;}if(c==='\\'&&i+1<s.length){cur+=s[++i];has=true;continue;}
+  if(/\s/.test(c)){if(cur||has){out.push(cur);cur='';has=false;}continue;}cur+=c;}
+  if(cur||has)out.push(cur);return out;}
+function expand(s){return s.replace(/\$(PWD|HOME|PATH|SHELL|USER)\b/g,(m,v)=>({PWD:cwd,HOME,PATH:PATHV,SHELL:'/bin/bash',USER:'missing'})[v]);}
+function readFile(p){const a=absP(p);if(a in FILES)return FILES[a];if(isDir(a))return {err:`${p}: Is a directory`};if(isFile(a))return {err:`${p}: (binary or empty file)`};return {err:`${p}: No such file or directory`};}
+function run(raw){const toks=tokenize(expand(raw));if(!toks.length)return;const [c,...a]=toks;
+  const out=t=>line(esc(t)),err=t=>line(`<span class="e">${esc(t)}</span>`);
+  switch(c){
+  case 'help':line('<span class="m">Try: pwd · ls [-l] [dir] · cd [dir|..|~|-] · cat file · echo text / $PATH · which cmd · date · head/tail/sort/uniq/grep pat file · man cmd · history · clear · whoami · hostname</span>');break;
+  case 'pwd':out(cwd);break;
+  case 'whoami':out('missing');break;case 'hostname':out('missing');break;
+  case 'date':out(new Date().toString().replace(/ GMT.*/,''));break;
+  case 'echo':out(a.join(' '));break;
+  case 'clear':$$('.ln',scr).forEach(n=>n.remove());break;
+  case 'history':hist.forEach((h,i)=>out(String(i+1).padStart(4)+'  '+h));break;
+  case 'cd':{const t=a[0]===undefined?HOME:a[0];const d=absP(t);if(isDir(d))cwd=d;else if(isFile(d))err(`bash: cd: ${t}: Not a directory`);else err(`bash: cd: ${t}: No such file or directory`);break;}
+  case 'ls':{const long=a.includes('-l')||a.includes('-la')||a.includes('-al');const tg=a.filter(x=>!x.startsWith('-'));const d=absP(tg[0]);
+    if(!isDir(d)){if(isFile(d))out(tg[0]);else err(`ls: cannot access '${tg[0]}': No such file or directory`);break;}
+    const L=FS[d];if(!L.length)break;
+    if(long){L.forEach(n=>{const dir=n.endsWith('/');line(`<span class="m">${dir?'drwxr-xr-x':'-rw-r--r--'} 1 missing missing ${String(dir?4096:(FILES[(d==='/'?'':d)+'/'+n]||'').length||1234).padStart(5)} Jan 12 09:00</span> ${dir?`<span class="d">${esc(n.slice(0,-1))}</span>`:esc(n)}`);});}
+    else line(L.map(n=>n.endsWith('/')?`<span class="d">${esc(n.slice(0,-1))}</span>`:(d.includes('bin')?`<span class="p">${esc(n)}</span>`:esc(n))).join('   '));break;}
+  case 'cat':if(!a.length){err('cat: missing file operand');break;}a.forEach(f=>{const r=readFile(f);r.err?err('cat: '+r.err):out(r);});break;
+  case 'head':case 'tail':case 'sort':case 'uniq':{const f=a.filter(x=>!x.startsWith('-'))[0];if(!f){err(`${c}: missing file operand`);break;}const r=readFile(f);if(r.err){err(c+': '+r.err);break;}let L=r.split('\n');
+    if(c==='head')L=L.slice(0,10);if(c==='tail')L=L.slice(-10);if(c==='sort')L=[...L].sort();if(c==='uniq')L=L.filter((x,i)=>x!==L[i-1]);out(L.join('\n'));break;}
+  case 'grep':{const [p,f]=a;if(!p||!f){err('usage: grep PATTERN FILE');break;}const r=readFile(f);if(r.err){err('grep: '+r.err);break;}const m=r.split('\n').filter(l=>l.includes(p));
+    m.forEach(l=>line(esc(l).split(esc(p)).join(`<span class="x">${esc(p)}</span>`)));break;}
+  case 'which':case 'type':a.forEach(n=>{if(['cd','help','history'].includes(n)){c==='type'?out(`${n} is a shell builtin`):err(`which: no ${n} in (${PATHV})`);return;}const d=PDIRS.find(d=>(FS[d]||[]).includes(n));d?out(c==='type'?`${n} is ${d}/${n}`:`${d}/${n}`):err(`which: no ${n} in (${PATHV})`);});break;
+  case 'man':{const n=a[0];out(n&&MAN[n]?MAN[n]+'\n(simulated — real man pages are much longer; press q to quit in a real terminal)':`No manual entry for ${n||''}`);break;}
+  case 'sudo':err('missing is not in the sudoers file. This incident will be reported. 😉');break;
+  default:{if(c.includes('/')){err(`bash: ${c}: Permission denied (simulation)`);break;}const known=PDIRS.some(d=>(FS[d]||[]).includes(c));
+    known?line(`<span class="m">${esc(c)}: installed, but not simulated here — try it in a real terminal</span>`):err(`bash: ${c}: command not found`);}
+  }}
+const inrow=document.createElement('div');inrow.className='inrow';inrow.innerHTML='<span class="p" id="ps1"></span><input id="cmdin" autocomplete="off" spellcheck="false" aria-label="command">';scr.appendChild(inrow);
+const cin=$('#cmdin'),ps1=$('#ps1');const setPS=()=>ps1.textContent=`missing:${short(cwd)}$`;setPS();
+line('<span class="m">Welcome to the practice shell. Type <span class="x">help</span> to see what works.</span>');
+cin.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){const v=cin.value;line(`<span class="p">missing:${esc(short(cwd))}$</span> ${esc(v)}`);if(v.trim()){hist.push(v);}hi=hist.length;cin.value='';run(v.trim());setPS();scr.scrollTop=scr.scrollHeight;}
+  else if(e.key==='ArrowUp'){if(hi>0){hi--;cin.value=hist[hi];}e.preventDefault();}
+  else if(e.key==='ArrowDown'){if(hi<hist.length-1){hi++;cin.value=hist[hi];}else{hi=hist.length;cin.value='';}e.preventDefault();}
+  else if(e.key==='Tab'){e.preventDefault();const parts=cin.value.split(' ');const last=parts.pop();const slash=last.lastIndexOf('/');const base=slash>=0?last.slice(0,slash+1):'';const pre=last.slice(slash+1);
+    const dir=absP(base||'.');const cands=(parts.length?(FS[dir]||[]):[...BUILTIN,...PDIRS.flatMap(d=>FS[d]||[])]).filter(n=>n.startsWith(pre));
+    if(cands.length===1){parts.push(base+cands[0].replace(/ /g,'\\ '));cin.value=parts.join(' ');}else if(cands.length>1){line(`<span class="m">${esc(cands.join('   '))}</span>`);}}
+});
+scr.addEventListener('click',()=>{if(!getSelection().toString())cin.focus();});
+})();
+</script>
+</body>
+</html>
