@@ -1,0 +1,805 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Debugging and Profiling — Interactive Notes (Missing Semester 2026, Lecture 4)</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f4ee; --paper:#fffdf8; --ink:#1c2321; --muted:#5d6763; --line:#e3ded2;
+  --green:#1f7a55; --green-soft:#e3f2ea; --amber:#c97a12; --amber-soft:#fbefd9;
+  --blue:#2f5f9e; --blue-soft:#e4ecf7; --red:#b4443a; --red-soft:#f8e4e1;
+  --term:#12171a; --term-ink:#d7e2dc; --term-green:#6fdc9d; --term-amber:#f2b55a; --term-blue:#7fb3ff;
+  --mono:'JetBrains Mono','DejaVu Sans Mono',ui-monospace,monospace;
+  --sans:'Inter',system-ui,-apple-system,Segoe UI,sans-serif;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.62 var(--sans);-webkit-font-smoothing:antialiased}
+code,kbd,pre{font-family:var(--mono)}
+code{background:#ece8dc;padding:.08em .38em;border-radius:5px;font-size:.88em}
+kbd{background:#fff;border:1px solid #cfc8b8;border-bottom-width:2px;border-radius:5px;padding:.05em .4em;font-size:.82em}
+a{color:var(--blue)}
+.progress{position:fixed;top:0;left:0;height:3px;background:linear-gradient(90deg,var(--green),var(--amber));width:0;z-index:50}
+
+/* layout */
+.wrap{display:grid;grid-template-columns:250px minmax(0,1fr);gap:40px;max-width:1180px;margin:0 auto;padding:0 24px 80px}
+nav.toc{position:sticky;top:20px;align-self:start;margin-top:28px;font-size:14px;max-height:calc(100vh - 40px);overflow:auto}
+nav.toc h4{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 10px}
+nav.toc a{display:flex;gap:10px;align-items:center;padding:6px 10px;border-radius:8px;color:var(--ink);text-decoration:none;border-left:2px solid transparent}
+nav.toc a span{font-family:var(--mono);font-size:11px;color:var(--muted);width:18px}
+nav.toc a:hover{background:#ece8dc}
+nav.toc a.active{background:var(--green-soft);border-left-color:var(--green);font-weight:600}
+main{min-width:0}
+
+/* hero */
+.hero{background:var(--term);color:var(--term-ink);border-radius:0 0 22px 22px;padding:42px 44px 38px;margin-bottom:34px;position:relative;overflow:hidden}
+.hero::after{content:"";position:absolute;right:-60px;top:-60px;width:260px;height:260px;border-radius:50%;background:radial-gradient(circle,rgba(111,220,157,.18),transparent 70%)}
+.hero .kicker{font-family:var(--mono);color:var(--term-green);font-size:13px;letter-spacing:.04em}
+.hero h1{font-size:44px;line-height:1.08;margin:10px 0 12px;color:#fff;letter-spacing:-.02em}
+.hero p{max-width:640px;color:#b7c4be;margin:0}
+.hero .typed{font-family:var(--mono);margin-top:22px;font-size:15px;color:var(--term-ink)}
+.hero .typed b{color:var(--term-green);font-weight:400}
+.cursor{display:inline-block;width:9px;height:17px;background:var(--term-green);vertical-align:-3px;animation:blink 1s steps(1) infinite}
+@keyframes blink{50%{opacity:0}}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-top:22px}
+.meta span{font-size:12px;border:1px solid #2f3a37;border-radius:99px;padding:4px 11px;color:#9fb0a9}
+
+/* sections */
+section{background:var(--paper);border:1px solid var(--line);border-radius:var(--r);padding:30px 34px;margin-bottom:26px;scroll-margin-top:16px}
+section h2{display:flex;align-items:center;gap:12px;font-size:26px;margin:0 0 6px;letter-spacing:-.01em}
+section h2 .num{font-family:var(--mono);font-size:13px;background:var(--ink);color:#fff;border-radius:7px;padding:3px 8px}
+section .lede{color:var(--muted);margin:0 0 18px}
+h3{font-size:18px;margin:26px 0 8px}
+p{margin:0 0 12px}
+
+/* callouts */
+.callout{display:flex;gap:12px;border-radius:12px;padding:13px 16px;margin:14px 0;font-size:15px}
+.callout .ic{font-size:18px;line-height:1.4}
+.callout.tip{background:var(--green-soft)}
+.callout.warn{background:var(--amber-soft)}
+.callout.info{background:var(--blue-soft)}
+.callout.bad{background:var(--red-soft)}
+.callout b{font-weight:700}
+
+/* terminal-styled code */
+.term{background:var(--term);color:var(--term-ink);border-radius:12px;margin:12px 0;position:relative;overflow:hidden;font-size:13.5px}
+.term .bar{display:flex;align-items:center;gap:6px;padding:9px 12px;background:#1b2225}
+.term .bar i{width:10px;height:10px;border-radius:50%;background:#3a4549;display:block}
+.term .bar i:nth-child(1){background:#e0625a}.term .bar i:nth-child(2){background:#e2b04a}.term .bar i:nth-child(3){background:#5cc370}
+.term .bar em{font-style:normal;font-family:var(--mono);font-size:11px;color:#7d8c87;margin-left:8px}
+.term pre{margin:0;padding:14px 16px;overflow-x:auto;white-space:pre;line-height:1.55}
+.term .p{color:var(--term-green)} .term .o{color:#9aa9a3} .term .c{color:#6f807a;font-style:italic} .term .k{color:var(--term-amber)} .term .s{color:var(--term-blue)}
+.copy{position:absolute;top:6px;right:8px;background:#28322f;color:#cfe0d8;border:0;border-radius:7px;font:12px var(--sans);padding:4px 10px;cursor:pointer}
+.copy:hover{background:#34423d}
+
+/* grids & cards */
+.grid{display:grid;gap:14px}
+.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.card{border:1px solid var(--line);border-radius:12px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 6px;font-size:15px}
+.card p{font-size:14.5px;color:#39423f;margin:0}
+.pill{display:inline-block;font-size:11px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;border-radius:99px;padding:2px 9px;margin-bottom:8px}
+.pill.g{background:var(--green-soft);color:var(--green)} .pill.a{background:var(--amber-soft);color:var(--amber)} .pill.b{background:var(--blue-soft);color:var(--blue)} .pill.r{background:var(--red-soft);color:var(--red)}
+
+/* tabs */
+.tabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 0}
+.tabs button{border:1px solid var(--line);background:#fff;border-radius:99px;padding:6px 14px;font:500 14px var(--sans);cursor:pointer;color:var(--ink)}
+.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.tabpanel{display:none;margin-top:12px}
+.tabpanel.on{display:block}
+
+/* prompt anatomy */
+.anatomy{background:var(--term);border-radius:12px;padding:26px 20px 18px;text-align:center}
+.anatomy .line{font-family:var(--mono);font-size:30px;color:var(--term-ink);letter-spacing:.02em}
+.anatomy .seg{cursor:pointer;border-radius:6px;padding:0 3px;transition:.15s;border-bottom:2px dashed transparent}
+.anatomy .seg:hover,.anatomy .seg.on{background:#24302c}
+.anatomy .seg[data-k="host"]{color:var(--term-blue);border-bottom-color:var(--term-blue)}
+.anatomy .seg[data-k="cwd"]{color:var(--term-green);border-bottom-color:var(--term-green)}
+.anatomy .seg[data-k="dollar"]{color:var(--term-amber);border-bottom-color:var(--term-amber)}
+.anatomy .explain{margin-top:16px;color:#c9d6d0;font-size:14.5px;min-height:46px}
+.anatomy .hint{color:#7d8c87;font-size:12px;margin-top:6px}
+
+/* widgets */
+.widget{border:1.5px solid var(--green);border-radius:14px;padding:18px 20px;margin:18px 0;background:linear-gradient(180deg,#f3faf6,#fff)}
+.widget .wt{font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--green);margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.widget label{font-size:13px;color:var(--muted);display:block;margin-bottom:4px}
+.widget input[type=text]{width:100%;font:14px var(--mono);padding:9px 11px;border:1px solid #cfc8b8;border-radius:9px;background:#fff}
+.widget .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.result{margin-top:12px;font-family:var(--mono);font-size:14px;background:var(--term);color:var(--term-ink);border-radius:10px;padding:12px 14px}
+.result .step{color:#8fa09a}
+.result .final{color:var(--term-green);font-weight:600}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.chips button{font:12px var(--mono);background:#fff;border:1px solid #cfc8b8;border-radius:7px;padding:3px 8px;cursor:pointer}
+.chips button:hover{border-color:var(--green)}
+
+/* PATH lookup */
+.pathdirs{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.pathdirs div{font-family:var(--mono);font-size:13.5px;padding:7px 12px;border-radius:8px;background:#fff;border:1px solid var(--line);transition:.25s;display:flex;justify-content:space-between}
+.pathdirs div.scan{background:var(--amber-soft);border-color:var(--amber)}
+.pathdirs div.miss{opacity:.5}
+.pathdirs div.hit{background:var(--green-soft);border-color:var(--green);font-weight:600}
+
+/* tools */
+.toolgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px;margin-top:14px}
+.tool{border:1px solid var(--line);border-radius:12px;background:#fff;padding:14px 16px;transition:.15s}
+.tool:hover{transform:translateY(-2px);box-shadow:0 6px 18px rgba(0,0,0,.06)}
+.tool .nm{font-family:var(--mono);font-weight:600;font-size:17px}
+.tool .what{font-size:14px;color:#39423f;margin:4px 0 8px}
+.tool code{display:block;background:var(--term);color:var(--term-ink);padding:7px 9px;border-radius:7px;font-size:12px;white-space:pre-wrap;word-break:break-word}
+.tool .alt{font-size:12px;color:var(--muted);margin-top:8px}
+.tool.hide{display:none}
+
+/* sed anatomy */
+.sed{display:flex;flex-wrap:wrap;justify-content:center;gap:3px;font-family:var(--mono);font-size:22px;margin:16px 0 8px}
+.sed span{padding:6px 8px;border-radius:7px;cursor:default;position:relative}
+.sedlegend{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;font-size:13.5px}
+.sedlegend div{border-radius:9px;padding:8px 11px}
+
+/* pipeline stepper */
+.pipe{display:flex;flex-direction:column;gap:0}
+.stage{display:grid;grid-template-columns:40px 1fr;gap:12px;cursor:pointer}
+.stage .dot{display:flex;flex-direction:column;align-items:center}
+.stage .dot b{width:30px;height:30px;border-radius:50%;background:#e7e2d6;color:var(--muted);display:flex;align-items:center;justify-content:center;font:600 13px var(--mono);transition:.2s}
+.stage .dot i{flex:1;width:2px;background:#e7e2d6;min-height:14px}
+.stage:last-child .dot i{display:none}
+.stage .body{padding-bottom:14px}
+.stage .cmd{font-family:var(--mono);font-size:13.5px;background:#efebe0;border-radius:8px;padding:7px 10px;display:inline-block;word-break:break-all}
+.stage .why{font-size:14.5px;color:#39423f;margin-top:6px;display:none}
+.stage .out{display:none;margin-top:8px}
+.stage.on .dot b{background:var(--green);color:#fff}
+.stage.on .dot i{background:var(--green)}
+.stage.on .cmd{background:var(--green-soft)}
+.stage.cur .why,.stage.cur .out{display:block}
+.pipectl{display:flex;gap:8px;margin:6px 0 16px}
+.btn{white-space:nowrap;border:0;background:var(--ink);color:#fff;border-radius:9px;padding:8px 14px;font:600 13.5px var(--sans);cursor:pointer}
+.btn.ghost{background:#fff;color:var(--ink);border:1px solid #cfc8b8}
+.btn:disabled{opacity:.4;cursor:default}
+
+/* redirect table */
+table{width:100%;border-collapse:collapse;font-size:14.5px;margin:10px 0}
+th,td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+th{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+td code{white-space:nowrap}
+
+/* flags */
+.flags{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.flag{border-radius:12px;padding:14px 16px;background:#fff;border:1px solid var(--line);cursor:pointer;transition:.15s}
+.flag .f{font:600 20px var(--mono);color:var(--amber)}
+.flag .s{font-size:13px;color:var(--muted)}
+.flag .d{display:none;font-size:14px;margin-top:8px}
+.flag.on{border-color:var(--amber);background:var(--amber-soft)}
+.flag.on .d{display:block}
+
+/* sandbox terminal */
+.sandbox{background:var(--term);border-radius:14px;overflow:hidden}
+.sandbox .screen{height:360px;overflow-y:auto;padding:14px 16px;font:13.5px/1.55 var(--mono);color:var(--term-ink);cursor:text}
+.sandbox .screen .ln{white-space:pre-wrap;word-break:break-word}
+.sandbox .inrow{display:flex;gap:8px;align-items:center}
+.sandbox input{flex:1;background:transparent;border:0;outline:0;color:#fff;font:13.5px var(--mono);padding:0}
+.sandbox .p{color:var(--term-green)} .sandbox .e{color:#ff8f86} .sandbox .d{color:var(--term-blue)} .sandbox .x{color:var(--term-amber)} .sandbox .m{color:#80908a}
+
+/* quiz */
+.q{border:1px solid var(--line);border-radius:12px;padding:16px 18px;margin-bottom:12px;background:#fff}
+.q .qt{font-weight:600;margin-bottom:10px}
+.q .opts{display:grid;gap:7px}
+.q button.opt{text-align:left;border:1px solid #d8d2c4;background:#fdfcf8;border-radius:9px;padding:9px 12px;font:14.5px var(--sans);cursor:pointer;color:var(--ink)}
+.q button.opt:hover{border-color:var(--green)}
+.q button.opt.right{background:var(--green-soft);border-color:var(--green)}
+.q button.opt.wrong{background:var(--red-soft);border-color:var(--red)}
+.q .ex{display:none;font-size:14px;margin-top:10px;color:#39423f;border-left:3px solid var(--green);padding-left:10px}
+.q.done .ex{display:block}
+.score{font-weight:700;font-family:var(--mono);color:var(--green)}
+
+/* exercises */
+.exgroup h4{margin:18px 0 8px;font-size:13px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.ex-item{display:grid;grid-template-columns:26px 1fr;gap:10px;padding:11px 0;border-bottom:1px dashed var(--line)}
+.ex-item input{width:18px;height:18px;margin-top:3px;accent-color:var(--green)}
+.ex-item .t{font-size:15px}
+.ex-item.checked .t{color:var(--muted);text-decoration:line-through;text-decoration-color:#b9b2a2}
+.ex-item .hintbtn{font-size:12.5px;color:var(--blue);background:none;border:0;padding:0;cursor:pointer;margin-top:4px}
+.ex-item .h{display:none;font-size:13.5px;background:var(--blue-soft);border-radius:8px;padding:7px 10px;margin-top:6px}
+.ex-item.showhint .h{display:block}
+.exbar{height:8px;background:#ebe6da;border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.exbar div{height:100%;background:var(--green);width:0;transition:.3s}
+
+/* cheat sheet */
+.cheat{display:grid;grid-template-columns:repeat(2,1fr);gap:0 26px}
+.cheat .r{display:grid;grid-template-columns:150px 1fr;gap:12px;padding:7px 0;border-bottom:1px solid var(--line);font-size:14px}
+.cheat .r code{background:none;padding:0;font-weight:600;color:var(--green);font-size:13px}
+.cheat h4{grid-column:1/-1;margin:14px 0 2px;font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--amber)}
+
+.linkbanner{border:1.5px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 16px;margin:0 0 14px;font-size:13px}
+.linkbanner a{color:var(--green)!important;font-family:var(--mono);font-weight:600;text-decoration:underline!important}
+.linkbanner .lb-ic{float:left;margin-right:12px;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;text-align:center;line-height:28px;font-size:12px}
+.topnav{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:10px 2px 0}
+.topnav a{color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 12px;background:#fff}
+.topnav a:hover{color:var(--ink);border-color:var(--green)}
+footer{font-size:13px;color:var(--muted);text-align:center;padding:10px}
+.print-only{display:none}
+.ptyped{display:none}
+
+@media (max-width:900px){
+  .wrap{grid-template-columns:1fr} nav.toc{display:none}
+  .g2,.g3,.flags,.cheat{grid-template-columns:1fr}
+  .hero{padding:30px 22px}.hero h1{font-size:32px}
+  section{padding:22px 18px}
+  .widget .row{grid-template-columns:1fr}
+}
+
+/* ---------- print / PDF ---------- */
+@page{size:A4;margin:14mm 12mm}
+@media print{
+  body{background:#fff;font-size:12.5px}
+  .progress,nav.toc,.copy,.no-print,.pipectl,.hintbtn,.tabs{display:none!important}
+  .print-only{display:block}
+  .print-only.grid{display:grid}
+  .wrap{display:block;padding:0;max-width:none}
+  .hero{border-radius:14px;padding:28px 30px;margin-bottom:16px}
+  .hero h1{font-size:34px}
+  section{border:1px solid #ddd6c6;padding:18px 22px;margin-bottom:14px;break-inside:auto}
+  h2,h3,h4,.lede{break-after:avoid}
+  .card,.tool,.q,.callout,.term,.flag,.stage,.ex-item,.widget,.anatomy{break-inside:avoid}
+  .tabpanel{display:block!important;margin-top:10px}
+  .tabpanel::before{content:attr(data-label);display:block;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);margin-bottom:4px}
+  .stage .why,.stage .out{display:block!important}
+  .stage .dot b{background:var(--green)!important;color:#fff!important}
+  .flag .d{display:block!important}
+  .q .ex{display:block!important}
+  .q .opts button[data-right]{background:var(--green-soft);border-color:var(--green)}
+  .ex-item .h{display:block!important}
+  .sandbox{display:none!important}
+  .toolgrid{grid-template-columns:repeat(3,1fr)}
+  .tool:hover{transform:none;box-shadow:none}
+  .anatomy .explain{display:none}
+  .hero .cursor,#typed{display:none}
+  .ptyped{display:inline}
+  .term pre{white-space:pre-wrap;word-break:break-all}
+  .g3{grid-template-columns:repeat(3,1fr)} .g2{grid-template-columns:repeat(2,1fr)}
+  .flags{grid-template-columns:repeat(3,1fr)}
+  .cheat{grid-template-columns:repeat(2,1fr)}
+  a{color:var(--ink);text-decoration:none}
+}
+
+/* ---- lecture 4 additions ---- */
+.lvls{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px}
+.lvls button{font:600 12px var(--mono);border:1px solid #cfc8b8;border-radius:8px;padding:5px 11px;background:#fff;cursor:pointer}
+.lvls button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.logbox{background:var(--term);border-radius:10px;padding:10px 14px;font:12.5px/1.65 var(--mono);color:var(--term-ink);min-height:150px}
+.logbox .lv{display:inline-block;width:52px;font-weight:600}
+.lv.DEBUG{color:#8fa09a}.lv.INFO{color:var(--term-blue)}.lv.WARN{color:var(--term-amber)}.lv.ERROR{color:#ff8f86}
+.logbox .kv{color:#9fb0a9}
+.dbg{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:14px}
+.code{background:#101517;border-radius:10px;padding:8px 0;font:13px/1.7 var(--mono);color:var(--term-ink)}
+.code .cl{display:flex;white-space:pre}
+.code .cl .no{width:44px;flex:none;text-align:right;padding-right:10px;color:#4d5b57;cursor:pointer;user-select:none;position:relative}
+.code .cl .no:hover{color:#ff8f86}
+.code .cl.bp .no::before{content:"●";color:#ff5f56;position:absolute;left:6px}
+.code .cl.at{background:#26341f}
+.code .cl.at .no{color:var(--term-amber)}
+.code .cl.bug .tx{text-decoration:underline wavy #ff8f86;text-underline-offset:4px}
+.vars{background:#fff;border:1px solid var(--line);border-radius:10px;padding:12px 14px;font:13px/1.7 var(--mono)}
+.vars h5{margin:0 0 6px;font:600 11px var(--sans);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.vars .row{display:flex;justify-content:space-between;gap:10px;border-bottom:1px dashed var(--line)}
+.vars .row b{font-weight:600}
+.vars .chg{background:var(--amber-soft)}
+.gdbline{margin-top:8px;font:12.5px var(--mono);background:var(--term);color:var(--term-ink);border-radius:8px;padding:8px 12px;min-height:36px;white-space:pre-wrap}
+.mem{display:grid;grid-template-columns:repeat(8,1fr);gap:4px;margin:10px 0}
+.cell{border-radius:8px;border:1.5px solid var(--line);background:#fff;padding:6px 4px;text-align:center;font:12px var(--mono);transition:.2s}
+.cell small{display:block;font:10.5px var(--sans);color:var(--muted)}
+.cell b{font-size:15px;display:block}
+.cell.s0{border-color:#9cc3ad}.cell.s1{border-color:#9db6d9}
+.cell.w{background:var(--amber-soft);border-color:var(--amber);transform:translateY(-2px)}
+.cell.watch{outline:2.5px dashed var(--red);outline-offset:1px}
+.cell.bad b{color:var(--red)}
+.memlbl{display:grid;grid-template-columns:1fr 1fr;gap:4px;font:600 11px var(--sans);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:center}
+.tl{height:8px;background:#ebe6da;border-radius:99px;position:relative;margin:12px 0 4px}
+.tl div{height:100%;background:var(--green);border-radius:99px;width:0;transition:.2s}
+.bars{display:flex;height:34px;border-radius:9px;overflow:hidden;font:600 12px var(--sans);color:#fff;margin:8px 0}
+.bars div{display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden}
+.fg{position:relative;height:150px;background:#fff;border:1px solid var(--line);border-radius:10px;overflow:hidden;margin-top:8px}
+.fg .f{position:absolute;height:26px;border:1px solid #fff;border-radius:4px;font:11.5px var(--mono);color:#3a1d00;padding:4px 6px;overflow:hidden;white-space:nowrap;cursor:pointer;box-sizing:border-box}
+.fg .f:hover{filter:brightness(1.08);outline:2px solid var(--ink)}
+.fginfo{font-size:13px;color:var(--muted);margin-top:6px;min-height:20px}
+.picker{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.picker button{text-align:left;border:1px solid var(--line);background:#fff;border-radius:10px;padding:10px 12px;font:14px var(--sans);cursor:pointer;color:var(--ink)}
+.picker button:hover,.picker button.on{border-color:var(--green);background:var(--green-soft)}
+.pickout{margin-top:10px;background:var(--term);color:var(--term-ink);border-radius:10px;padding:12px 14px;font:13px/1.6 var(--mono);min-height:60px}
+.pickout .t{color:var(--term-green);font-weight:600}
+.chart svg{width:100%;height:auto;display:block}
+@media (max-width:900px){.dbg,.picker{grid-template-columns:1fr}.mem{grid-template-columns:repeat(4,1fr)}}
+@media print{.lvls,.dbgctl,.gdbline,.memctl,.fginfo,.picker,.pickout{display:none!important}.dbg{grid-template-columns:1.3fr 1fr}.mem{grid-template-columns:repeat(8,1fr)}.fg,.chart,.mem,.dbg{break-inside:avoid}}
+</style>
+</head>
+<body>
+<div class="progress" id="progress"></div>
+<div class="wrap">
+  <nav class="toc" id="toc">
+    <h4>Contents</h4>
+    <a href="#print"><span>01</span>Print debugging &amp; logging</a>
+    <a href="#debuggers"><span>02</span>Debuggers (gdb)</a>
+    <a href="#rr"><span>03</span>Record–replay (rr)</a>
+    <a href="#syscalls"><span>04</span>System call tracing</a>
+    <a href="#network"><span>05</span>Network debugging</a>
+    <a href="#memory"><span>06</span>Memory debugging</a>
+    <a href="#aidebug"><span>07</span>AI for debugging</a>
+    <a href="#timing"><span>08</span>Timing &amp; monitoring</a>
+    <a href="#viz"><span>09</span>Visualizing data</a>
+    <a href="#cpu"><span>10</span>CPU &amp; memory profilers</a>
+    <a href="#bench"><span>11</span>Benchmarking</a>
+    <a href="#quiz"><span>12</span>Self-check quiz</a>
+    <a href="#exercises"><span>13</span>Exercises</a>
+    <a href="#cheat"><span>14</span>Cheat sheet</a>
+  </nav>
+
+<main>
+  <div class="topnav no-print"><a href="index.html">← All notes</a><a href="development-env.html">← Lecture 3: Development Environment</a></div>
+  <header class="hero" style="margin-top:10px">
+    <div class="kicker">MIT · The Missing Semester of Your CS Education · 2026 · Lecture 4</div>
+    <h1>Debugging and Profiling</h1>
+    <p>Code does what you <i>tell</i> it to, not what you <i>expect</i>. Tools for closing that gap — from print statements and debuggers to time-travel debugging, sanitizers, profilers and flame graphs.</p>
+    <div class="typed"><b>missing:~$</b> <span id="typed"></span><span class="ptyped">perf record -g ./my_program</span><span class="cursor"></span></div>
+    <div class="meta"><span>Interactive notes</span><span>~35 min read</span><span>Includes step debugger, rr time-travel demo, flame graph + quiz</span></div>
+  </header>
+
+  <div class="print-only linkbanner">
+    <div class="lb-ic">▶</div>
+    <div><b>Interactive version</b> — step debugger, rr reverse-debugging demo, log filter, clickable flame graph &amp; quiz:<br><a href="https://greymatter1005.github.io/missing-semester-notes/debugging-profiling.html">https://greymatter1005.github.io/missing-semester-notes/debugging-profiling.html</a></div>
+  </div>
+
+  <div class="callout info">
+    <div class="ic">🗺</div>
+    <div><b>Two halves.</b> <b>Debugging</b> — code that gives the wrong answer. <b>Profiling</b> — code that gives the right answer but burns too much CPU, memory or time. Measure before you optimize: premature optimization is the root of all evil.</div>
+  </div>
+
+  <!-- 01 -->
+  <section id="print">
+    <h2><span class="num">01</span>Print debugging &amp; logging</h2>
+    <p class="lede">Brian Kernighan's advice still holds: careful thought plus well-placed print statements is the most effective debugging tool. Add prints near the problem; iterate until you understand it.</p>
+    <p><b>Logging</b> is “printing with more care”, through a framework that gives you:</p>
+    <div class="grid g3">
+      <div class="card"><h4>📍 Destinations</h4><p>Send logs (or a subset) to files, the console, a log service…</p></div>
+      <div class="card"><h4>🎚 Severity levels</h4><p>DEBUG, INFO, WARN, ERROR — and filter by level.</p></div>
+      <div class="card"><h4>🧾 Structured data</h4><p>Key–value fields you can search and extract later.</p></div>
+    </div>
+    <div class="widget no-print">
+      <div class="wt">🎚 Filter by severity — show this level and above</div>
+      <div class="lvls" id="lvls"><button data-l="0" class="on">DEBUG</button><button data-l="1">INFO</button><button data-l="2">WARN</button><button data-l="3">ERROR</button></div>
+      <div class="logbox" id="logbox"></div>
+    </div>
+    <div class="callout tip"><div class="ic">♻️</div><div><b>Turn fixes into logs.</b> Once a print helped you find a bug, convert it into a proper log statement instead of deleting it — next time the diagnostics are already there.</div></div>
+    <div class="callout info"><div class="ic">📜</div><div><b>Other programs' logs:</b> try <code>-v</code> / <code>--verbose</code> (often repeatable for more detail), look in <code>/var/log/</code>, use <code>journalctl -u &lt;service&gt;</code> for systemd services, and check libraries for debug-logging environment variables.</div></div>
+  </section>
+
+  <!-- 02 -->
+  <section id="debuggers">
+    <h2><span class="num">02</span>Debuggers</h2>
+    <p class="lede">Reach for a debugger when you don't know what to print, the bug is hard to reproduce, or restarting is expensive. Debuggers let you <b>pause</b> at a line, <b>step</b> one instruction at a time, <b>inspect</b> variables (even after a crash) and <b>break on conditions</b>.</p>
+    <div class="grid g2">
+      <div class="card"><h4>General-purpose</h4><p><b>gdb</b> (GNU) and <b>lldb</b> (LLVM) debug any native binary — the standard for C, C++, Rust. They expose registers, stack, program counter and more.</p></div>
+      <div class="card"><h4>Language-specific</h4><p>Python's <b>pdb</b>, Java's <b>jdb</b> — tighter integration with the runtime.</p></div>
+    </div>
+    <table>
+      <tr><th>gdb command</th><th>Does</th></tr>
+      <tr><td><code>run</code></td><td>Start the program</td></tr>
+      <tr><td><code>b func</code> · <code>b file:line</code></td><td>Set a breakpoint</td></tr>
+      <tr><td><code>c</code></td><td>Continue to the next breakpoint</td></tr>
+      <tr><td><code>step</code> / <code>next</code> / <code>finish</code></td><td>Step into / over / out of a function</td></tr>
+      <tr><td><code>p var</code></td><td>Print a variable</td></tr>
+      <tr><td><code>bt</code></td><td>Backtrace (call stack)</td></tr>
+      <tr><td><code>watch expr</code></td><td>Stop when a value changes</td></tr>
+    </table>
+    <p style="font-size:14px;color:var(--muted)">Tip: <code>gdb -tui</code> (or <kbd>Ctrl</kbd>+<kbd>x</kbd> <kbd>a</kbd> inside gdb) shows the source beside the prompt. Compile with <code>-g</code> (debug symbols, DWARF) and ideally <code>-fno-omit-frame-pointer</code>, or stack traces may be just addresses.</p>
+
+    <h3>Try it: find the merge-sort bug</h3>
+    <p>This is the lecture's exercise. <code>merge_sort([3,1,4,1,5,9,2,6])</code> should give <code>[1,1,2,3,4,5,6,9]</code>. We've paused in the first <code>merge</code> call that goes wrong. <span class="no-print">Click line numbers to set breakpoints, then step.</span></p>
+    <div class="dbg">
+      <div><div class="code" id="code"></div>
+        <div class="dbgctl no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+          <button class="btn" id="dNext">next</button><button class="btn ghost" id="dCont">continue</button><button class="btn ghost" id="dReset">restart</button>
+          <label style="font-size:13px;display:flex;align-items:center;gap:6px;margin-left:auto"><input type="checkbox" id="dFix"> apply the fix</label>
+        </div>
+        <div class="gdbline no-print" id="gdbline"></div>
+      </div>
+      <div class="vars" id="vars"></div>
+    </div>
+  </section>
+
+  <!-- 03 -->
+  <section id="rr">
+    <h2><span class="num">03</span>Record–replay debugging with rr</h2>
+    <p class="lede"><b>Heisenbugs</b> vanish when you look at them — races, timing bugs. A print can slow things enough to hide the race. <b>rr</b> (Linux) records one execution, then replays it <i>deterministically</i>, as often as you like, inside gdb — and lets you run <b>backwards</b>.</p>
+    <div class="grid g2">
+      <div class="term" style="margin:0"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><pre>rr record ./my_program   <span class="c"># record once</span>
+rr replay                <span class="c"># replay in gdb</span></pre></div>
+      <table style="margin:0"><tr><th>Reverse command</th><th>Runs backwards…</th></tr>
+        <tr><td><code>reverse-continue</code> (rc)</td><td>to the previous breakpoint / watchpoint</td></tr>
+        <tr><td><code>reverse-step</code> (rs)</td><td>one line</td></tr>
+        <tr><td><code>reverse-next</code> (rn)</td><td>one line, over calls</td></tr>
+        <tr><td><code>reverse-finish</code></td><td>to where this function was entered</td></tr></table>
+    </div>
+    <p style="margin-top:12px"><b>The killer workflow:</b> run to the crash → see the corrupted value → <code>watch</code> it → <code>reverse-continue</code> → land on the exact line that wrote it.</p>
+
+    <div class="widget">
+      <div class="wt">⏪ Time-travel the lecture's <code>corruption.c</code></div>
+      <p style="font-size:14px;margin:0 0 6px"><code>curve_scores(0, 5)</code> only touches student 0 — yet student 1's id changes. Memory layout (each box = one int):</p>
+      <div class="memlbl"><div>students[0]</div><div>students[1]</div></div>
+      <div class="mem" id="mem"></div>
+      <div class="tl"><div id="tlfill"></div></div>
+      <div class="gdbline" id="memline" style="background:#fff;color:var(--ink);border:1px solid var(--line)"></div>
+      <div class="memctl no-print" style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+        <button class="btn ghost" id="mRS">◀ reverse-step</button><button class="btn ghost" id="mS">step ▶</button>
+        <button class="btn" id="mC">continue ⏩</button><button class="btn" id="mRC">⏪ reverse-continue</button>
+        <label style="font-size:13px;display:flex;align-items:center;gap:6px"><input type="checkbox" id="mW" checked> watch students[1].id</label>
+      </div>
+      <div class="term" style="margin-top:10px"><pre><span class="k">void</span> curve_scores(<span class="k">int</span> student_idx, <span class="k">int</span> curve) {
+    <span class="k">for</span> (<span class="k">int</span> i = 0; i &lt; <b style="color:#ff8f86">4</b>; i++) {          <span class="c">// scores has only 3 slots!</span>
+        students[student_idx].scores[i] += curve;
+    }
+}</pre></div>
+    </div>
+    <div class="callout warn"><div class="ic">⚠️</div><div><b>Caveats.</b> rr serializes threads, so some races won't show under it — you may need several recordings to catch one (then it replays reliably). Linux only; needs hardware performance counters (not available in many VMs, e.g. most AWS EC2), no GPU support. On macOS, see Warpspeed.</div></div>
+    <p><b>Use rr for:</b> flaky tests · race conditions · hard-to-reproduce crashes · any bug where you wish you could go back in time.</p>
+  </section>
+
+  <!-- 04 -->
+  <section id="syscalls">
+    <h2><span class="num">04</span>System call tracing</h2>
+    <p class="lede">Programs ask the kernel for everything — opening files, memory, processes. Watching those <b>system calls</b> shows why a program hangs, which files it touches, and where it waits.</p>
+    <h3><code>strace</code> (Linux) · <code>dtruss</code> (macOS)</h3>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>strace ./my_program                  <span class="c"># every system call</span>
+strace -e trace=file ./my_program    <span class="c"># only file-related calls</span>
+strace -f ./my_program               <span class="c"># follow child processes</span>
+strace -p &lt;PID&gt;                      <span class="c"># attach to a running process</span>
+strace -T ./my_program               <span class="c"># time spent in each call</span></pre></div>
+    <h3><code>bpftrace</code> &amp; eBPF</h3>
+    <p>eBPF runs small sandboxed programs <i>inside the kernel</i>; bpftrace gives them an awk-like syntax. Use it when you need <b>lower overhead</b>, <b>aggregation</b> (counts, latency stats) or kernel-level detail. It runs as root and sees the whole system — filter by command or PID.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre><span class="c"># print every file opened, system-wide</span>
+sudo bpftrace -e 'tracepoint:syscalls:sys_enter_openat { printf("%s %s\n", comm, str(args->filename)); }'
+
+<span class="c"># count system calls by name (summary on Ctrl-C)</span>
+sudo bpftrace -e 'tracepoint:syscalls:sys_enter_* { @[probe] = count(); }'
+
+<span class="c"># only for bash</span>
+sudo bpftrace -e 'tracepoint:syscalls:sys_enter_* /comm == "bash"/ { @[probe] = count(); }'
+
+<span class="c"># trace a command from startup (-c sets cpid)</span>
+sudo bpftrace -e 'tracepoint:syscalls:sys_enter_* /pid == cpid/ { @[probe] = count(); }' -c 'ls -la'</pre></div>
+    <p style="font-size:14px;color:var(--muted)">For C-level eBPF there's <b>bcc</b>, which ships ready tools like <code>opensnoop</code> (open files) and <code>biosnoop</code> (disk latency). Julia Evans' strace zine is a friendly deep dive.</p>
+    <div class="grid g2"><div class="card"><h4>strace</h4><p>Easiest to start with; one process; higher overhead.</p></div><div class="card"><h4>bpftrace</h4><p>Low overhead; kernel-wide; aggregation; needs root.</p></div></div>
+  </section>
+
+  <!-- 05 -->
+  <section id="network">
+    <h2><span class="num">05</span>Network debugging</h2>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>sudo tcpdump -i any port 80             <span class="c"># watch traffic on port 80</span>
+sudo tcpdump -i any -w capture.pcap     <span class="c"># save for Wireshark</span></pre></div>
+    <p><b>HTTPS</b> is encrypted, so tcpdump sees little. Use an intercepting proxy like <b>mitmproxy</b> — or, easiest for web apps, the browser's <b>DevTools → Network</b> tab (decrypted requests, headers and timing).</p>
+  </section>
+
+  <!-- 06 -->
+  <section id="memory">
+    <h2><span class="num">06</span>Memory debugging</h2>
+    <p class="lede">Buffer overflows, use-after-free and leaks rarely crash on the spot — they corrupt memory and blow up later, far from the cause.</p>
+    <h3>Sanitizers (recompile, run, get a report)</h3>
+    <table>
+      <tr><th>Sanitizer</th><th>Flag</th><th>Catches</th></tr>
+      <tr><td><b>AddressSanitizer</b> (ASan)</td><td><code>-fsanitize=address</code></td><td>Buffer overflows (stack/heap/global), use-after-free, use-after-return, leaks</td></tr>
+      <tr><td><b>ThreadSanitizer</b> (TSan)</td><td><code>-fsanitize=thread</code></td><td>Data races</td></tr>
+      <tr><td><b>MemorySanitizer</b> (MSan)</td><td><code>-fsanitize=memory</code></td><td>Reads of uninitialized memory</td></tr>
+      <tr><td><b>UBSan</b></td><td><code>-fsanitize=undefined</code></td><td>Undefined behaviour, e.g. integer overflow</td></tr>
+    </table>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>gcc -fsanitize=address -g program.c -o program
+./program</pre></div>
+    <p>Sanitizers are fast enough for everyday development and CI.</p>
+    <h3>Valgrind (no recompiling)</h3>
+    <p>Runs your program in a VM-like environment. Slower, but works when you <b>lack the source</b>, <b>can't recompile</b> (third-party libraries) or need a tool sanitizers don't offer.</p>
+    <div class="term"><pre>valgrind --leak-check=full ./my_program</pre></div>
+  </section>
+
+  <!-- 07 -->
+  <section id="aidebug">
+    <h2><span class="num">07</span>AI for debugging</h2>
+    <div class="grid g2">
+      <div class="card"><span class="pill g">Where LLMs shine</span><p>• Translating cryptic errors (C++ templates, Rust borrow checker)<br>• Crossing language boundaries (a C library bug surfacing through Python, FFI, build systems, “I think it's my dependency”)<br>• Linking vague symptoms to causes (“10× more memory than expected”)<br>• Reading crash dumps and stack traces</p></div>
+      <div class="card"><span class="pill r">Limits</span><p>• Plausible but wrong explanations (hallucinations)<br>• “Fixes” that hide the bug instead of fixing it<br>• Always verify with real debugging tools<br>• A complement to understanding your code — not a replacement</p></div>
+    </div>
+  </section>
+
+  <!-- 08 -->
+  <section id="timing">
+    <h2><span class="num">08</span>Timing &amp; resource monitoring</h2>
+    <p class="lede">Simplest measurement: time it. But <b>wall-clock</b> time includes waiting. <code>time</code> splits it up:</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><pre><span class="p">$</span> time curl https://missing.csail.mit.edu &amp;&gt; /dev/null
+<span class="o">real    0m0.272s
+user    0m0.079s
+sys     0m0.028s</span></pre></div>
+    <div class="bars"><div style="width:29%;background:var(--green)">user 79 ms</div><div style="width:10%;background:var(--blue)">sys 28</div><div style="width:61%;background:#b9b2a2;color:var(--ink)">waiting on the network ≈ 165 ms</div></div>
+    <div class="grid g3"><div class="card"><h4>real</h4><p>Wall-clock, start to finish, including waiting</p></div><div class="card"><h4>user</h4><p>CPU time running your code</p></div><div class="card"><h4>sys</h4><p>CPU time running kernel code for you</p></div></div>
+
+    <h3>What's eating my machine?</h3>
+    <div class="widget no-print">
+      <div class="wt">🧭 Pick a question</div>
+      <div class="picker" id="picker">
+        <button data-k="cpu">Which processes use CPU / RAM?</button><button data-k="io">Who's hammering the disk?</button><button data-k="mem">How much memory is free?</button><button data-k="files">Who has this file open?</button>
+        <button data-k="port">What's using port 8080?</button><button data-k="net">Which process uses the network?</button>
+      </div>
+      <div class="pickout" id="pickout">Pick a question above.</div>
+    </div>
+    <table>
+      <tr><th>Tool</th><th>Shows</th></tr>
+      <tr><td><b>htop</b> / <b>btop</b></td><td>Processes, CPU, memory (htop: <kbd>F6</kbd> sort, <kbd>t</kbd> tree, <kbd>h</kbd> threads)</td></tr>
+      <tr><td><b>iotop</b></td><td>Live disk I/O per process</td></tr>
+      <tr><td><b>free</b></td><td>Total free / used memory</td></tr>
+      <tr><td><b>lsof</b></td><td>Open files and which process holds them</td></tr>
+      <tr><td><b>ss</b></td><td>Network connections — <code>ss -tlnp | grep :8080</code></td></tr>
+      <tr><td><b>nethogs</b> / <b>iftop</b></td><td>Network usage per process</td></tr>
+    </table>
+  </section>
+
+  <!-- 09 -->
+  <section id="viz">
+    <h2><span class="num">09</span>Visualizing performance data</h2>
+    <p class="lede">People spot patterns in plots far faster than in tables. So <b>log tidily</b> — <code>1705012345,42.5</code> (timestamp, value) or JSON plots instantly; a prose sentence doesn't.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>gnuplot -e "set datafile separator ','; plot 'latency.csv' using 1:2 with lines"</pre></div>
+    <p>For exploration, Python's <b>matplotlib</b> and R's <b>ggplot2</b> — ggplot2's <b>facets</b> split one dataset into subplots by category, exposing problems that only affect one endpoint, cohort or server.</p>
+    <h3>Example: why do some vector insertions spike?</h3>
+    <div class="chart" id="vecchart"></div>
+    <p style="font-size:13px;color:var(--muted)">Cost model of appending to a dynamic array that doubles its capacity when full: each append costs 1, plus copying every element at the moment of doubling. The spikes at 1, 2, 4, 8, 16, 32… are exactly what a plot of real insert times shows — and what a table of averages hides.</p>
+    <p>Other plot-revealed patterns: periodic latency spikes (garbage collection, cron jobs, traffic), and “system-wide” slowness that's really one category.</p>
+  </section>
+
+  <!-- 10 -->
+  <section id="cpu">
+    <h2><span class="num">10</span>CPU &amp; memory profilers</h2>
+    <div class="grid g2">
+      <div class="card"><span class="pill b">Tracing</span><h4>Records every function call</h4><p>Exact counts, caller/callee relationships — but slow. e.g. Valgrind's <b>callgrind</b>.</p></div>
+      <div class="card"><span class="pill g">Sampling</span><h4>Snapshots the stack ~every ms</h4><p>Statistical, low overhead — preferred in production. e.g. <b>perf</b>.</p></div>
+    </div>
+    <h3><code>perf</code> — the standard Linux sampling profiler</h3>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>perf stat ./slow_program      <span class="c"># counters: task-clock, page faults, cycles, branch misses…</span>
+perf record -g ./my_program   <span class="c"># sample with call stacks</span>
+perf report                   <span class="c"># browse where time went</span>
+perf script | stackcollapse-perf.pl | flamegraph.pl &gt; flamegraph.svg</pre></div>
+
+    <h3>Flame graphs</h3>
+    <p><b>Y axis</b> = call stack (callers below, callees above). <b>Width</b> = share of samples (time). Wide plateaus at the top are your hot spots. <span class="no-print">Click a frame to zoom; click the bottom bar to zoom out.</span></p>
+    <div class="fg" id="fg"></div>
+    <div class="fginfo" id="fginfo">Illustrative profile of the lecture's <code>slow.c</code>.</div>
+    <p style="font-size:13.5px;color:var(--muted)">Interactive viewers: <b>Speedscope</b> (flame graphs in the browser) and <b>Perfetto</b> (whole-system traces). Language-specific profilers: Python <b>cProfile</b>, <b>py-spy</b>; Go <b>go tool pprof</b>; Rust <b>cargo-flamegraph</b> (works for any compiled program). Browsers have their own (Firefox Profiler, Chrome DevTools).</p>
+
+    <h3>Callgrind (tracing) &amp; Massif (memory)</h3>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>valgrind --tool=callgrind ./my_program     <span class="c"># exact call counts (+ --cache-sim=yes)</span>
+callgrind_annotate callgrind.out.&lt;pid&gt;     <span class="c"># text report  (kcachegrind = GUI)</span>
+
+valgrind --tool=massif ./my_program        <span class="c"># heap usage over time → leaks, excess allocation</span>
+ms_print massif.out.&lt;pid&gt;</pre></div>
+    <p style="font-size:14px;color:var(--muted)">Python: <b>memory-profiler</b> gives line-by-line memory use.</p>
+  </section>
+
+  <!-- 11 -->
+  <section id="bench">
+    <h2><span class="num">11</span>Benchmarking with hyperfine</h2>
+    <p class="lede">Compare implementations properly: warm-ups, many runs, mean ± σ.</p>
+    <div class="term"><div class="bar"><i></i><i></i><i></i><em>bash</em></div><button class="copy">Copy</button><pre>hyperfine --warmup 3 'fd -e jpg' 'find . -iname "*.jpg"'</pre></div>
+    <div style="font-size:13px;margin:8px 0 2px"><code>fd -e jpg</code> — 51.4 ms ± 2.9 ms</div>
+    <div class="bars" style="height:24px"><div style="width:4.6%;background:var(--green)"></div><div style="flex:1;background:#f1eee6"></div></div>
+    <div style="font-size:13px;margin:8px 0 2px"><code>find . -iname "*.jpg"</code> — 1.126 s ± 0.101 s</div>
+    <div class="bars" style="height:24px"><div style="width:100%;background:var(--amber)">≈ 21.9× slower</div></div>
+    <p style="font-size:13px;color:var(--muted)">Numbers from the lecture's run. Note the System time: find spent ~956 ms in the kernel vs fd's ~160 ms.</p>
+  </section>
+
+  <!-- 12 -->
+  <section id="quiz">
+    <h2><span class="num">12</span>Self-check quiz</h2>
+    <p class="lede"><span class="no-print">Pick an answer to see the explanation. Score: <span class="score" id="score">0 / 0</span></span><span class="print-only">Answer key — correct options are highlighted.</span></p>
+    <div id="quizbox"></div>
+    <button class="btn ghost no-print" id="quizReset">Reset quiz</button>
+  </section>
+
+  <!-- 13 -->
+  <section id="exercises">
+    <h2><span class="num">13</span>Exercises</h2>
+    <p class="lede">From the lecture (paraphrased). The full code for each is on the lecture page. <span class="no-print">Tick them off as you go; progress is saved in this browser.</span></p>
+    <div class="no-print"><div class="exbar"><div id="exfill"></div></div><div style="font-size:13px;color:var(--muted)" id="excount"></div></div>
+    <div id="exlist"></div>
+  </section>
+
+  <!-- 14 -->
+  <section id="cheat">
+    <h2><span class="num">14</span>Cheat sheet</h2>
+    <div class="cheat">
+      <h4>gdb / rr</h4>
+      <div class="r"><code>b f · b file:N</code><span>breakpoint</span></div>
+      <div class="r"><code>run · c</code><span>start · continue</span></div>
+      <div class="r"><code>step · next · finish</code><span>into · over · out</span></div>
+      <div class="r"><code>p x · bt</code><span>print · call stack</span></div>
+      <div class="r"><code>watch expr</code><span>stop when it changes</span></div>
+      <div class="r"><code>rr record · rr replay</code><span>record once, replay forever</span></div>
+      <div class="r"><code>rc · rs · rn</code><span>reverse continue/step/next</span></div>
+      <div class="r"><code>gdb -tui</code><span>source view</span></div>
+      <h4>Tracing</h4>
+      <div class="r"><code>strace -f -e trace=file</code><span>file syscalls, follow children</span></div>
+      <div class="r"><code>strace -p PID -T</code><span>attach, with timings</span></div>
+      <div class="r"><code>bpftrace -e '…'</code><span>kernel-level, aggregates</span></div>
+      <div class="r"><code>tcpdump -i any port 80</code><span>packets</span></div>
+      <h4>Memory</h4>
+      <div class="r"><code>-fsanitize=address</code><span>ASan</span></div>
+      <div class="r"><code>=thread · =memory · =undefined</code><span>TSan · MSan · UBSan</span></div>
+      <div class="r"><code>valgrind --leak-check=full</code><span>no recompile</span></div>
+      <div class="r"><code>-g -fno-omit-frame-pointer</code><span>usable stack traces</span></div>
+      <h4>Performance</h4>
+      <div class="r"><code>time cmd</code><span>real · user · sys</span></div>
+      <div class="r"><code>htop · iotop · free</code><span>CPU/RAM · disk · memory</span></div>
+      <div class="r"><code>lsof · ss -tlnp</code><span>open files · listening ports</span></div>
+      <div class="r"><code>perf stat · record · report</code><span>sampling profiler</span></div>
+      <div class="r"><code>--tool=callgrind · massif</code><span>call counts · heap</span></div>
+      <div class="r"><code>hyperfine --warmup 3</code><span>benchmark commands</span></div>
+    </div>
+  </section>
+
+  <footer>Notes based on <a href="https://missing.csail.mit.edu/2026/debugging-profiling/">“Debugging and Profiling”</a>, The Missing Semester of Your CS Education (MIT, 2026) by Anish, Jon &amp; Jose — licensed CC BY-NC-SA. These notes are shared under the same licence.<span class="print-only" style="margin-top:4px">Interactive version: <a href="https://greymatter1005.github.io/missing-semester-notes/debugging-profiling.html">https://greymatter1005.github.io/missing-semester-notes/debugging-profiling.html</a></span></footer>
+</main>
+</div>
+
+<script>
+(function(){
+const $=(s,r=document)=>r.querySelector(s), $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+const heroWords=['gdb ./a.out','rr replay','strace -f ./app','perf record -g ./app','hyperfine --warmup 3 ...'];
+let wi=0,ci=0,del=false;const te=$('#typed');
+(function tick(){const w=heroWords[wi];
+  if(!del){te.textContent=w.slice(0,++ci);if(ci===w.length){del=true;return setTimeout(tick,1400);}}
+  else{te.textContent=w.slice(0,--ci);if(ci===0){del=false;wi=(wi+1)%heroWords.length;}}
+  setTimeout(tick,del?40:85);})();
+
+const links=$$('#toc a'), secs=links.map(a=>$(a.getAttribute('href')));
+function onScroll(){const h=document.documentElement;$('#progress').style.width=(h.scrollTop/(h.scrollHeight-h.clientHeight)*100)+'%';
+  let cur=0;secs.forEach((s,i)=>{if(s&&s.getBoundingClientRect().top<120)cur=i;});links.forEach((a,i)=>a.classList.toggle('active',i===cur));}
+addEventListener('scroll',onScroll,{passive:true});onScroll();
+$$('.copy').forEach(b=>b.addEventListener('click',async()=>{const txt=b.parentElement.querySelector('pre').innerText.split('\n').map(l=>l.replace(/^\$ /,'')).join('\n');
+  try{await navigator.clipboard.writeText(txt);b.textContent='Copied ✓';}catch(e){b.textContent='Select & copy';}setTimeout(()=>b.textContent='Copy',1500);}));
+
+/* 01 log filter */
+const LOGS=[[0,'09:14:02','cache lookup','key="user:42" hit=false'],[1,'09:14:02','request started','method=GET path=/api/orders user=42'],[0,'09:14:02','db query','sql="SELECT * FROM orders WHERE user_id=?" ms=12'],
+ [1,'09:14:03','request finished','status=200 ms=48'],[2,'09:14:05','slow query','sql="SELECT * FROM items" ms=1840'],[0,'09:14:05','retrying connection','attempt=1'],
+ [3,'09:14:06','payment failed','order=8812 error="card declined"'],[1,'09:14:07','request started','method=POST path=/api/pay user=7'],[2,'09:14:07','disk usage high','used_pct=91'],[3,'09:14:08','unhandled exception','trace_id=ab12 type=KeyError']];
+const LN=['DEBUG','INFO','WARN','ERROR'];
+function drawLogs(min){$('#logbox').innerHTML=LOGS.filter(l=>l[0]>=min).map(l=>`<div>${l[1]} <span class="lv ${LN[l[0]]}">${LN[l[0]]}</span> ${esc(l[2])} <span class="kv">${esc(l[3])}</span></div>`).join('');}
+$('#lvls').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#lvls button').forEach(x=>x.classList.toggle('on',x===b));drawLogs(+b.dataset.l);});drawLogs(0);
+
+/* 02 step debugger */
+const SRC=['function merge(left, right):','    result = []','    i = 0, j = 0','    while i < length(left) AND j < length(right):','        if left[i] <= right[j]:','            append result, left[i]','            i = i + 1','        else:','            append result, right[i]','            j = j + 1','    append remaining elements from left and right','    return result'];
+function trace(left,right,fixed){const T=[];let result=[],i=0,j=0;const s=(ln,note)=>T.push({ln,i,j,result:[...result],note});
+  s(2,'');result=[];s(3,'');i=0;j=0;
+  while(true){const c=i<left.length&&j<right.length;s(4,c?'condition is true → enter the loop':'condition is false → leave the loop');if(!c)break;
+    const t=left[i]<=right[j];s(5,`left[i] = ${left[i]} <= right[j] = ${right[j]} → ${t}`);
+    if(t){s(6,`will append left[${i}] = ${left[i]}`);result.push(left[i]);s(7,'');i++;}
+    else{const v=fixed?right[j]:right[i];s(9,fixed?`will append right[j] = right[${j}] = ${v}`:`will append right[i] = right[${i}] = ${v}   ⚠ but the smaller value is right[j] = right[${j}] = ${right[j]}`);result.push(v);s(10,'');j++;}}
+  s(11,`will append leftovers ${JSON.stringify([...left.slice(i),...right.slice(j)])}`);result.push(...left.slice(i),...right.slice(j));s(12,`returns [${result}]${fixed?'':'   ⚠ should be [1,1,3,4]'}`);return T;}
+function msort(a,fixed){if(a.length<=1)return a;const m=Math.floor(a.length/2);const l=msort(a.slice(0,m),fixed),r=msort(a.slice(m),fixed);
+  const out=[];let i=0,j=0;while(i<l.length&&j<r.length){if(l[i]<=r[j])out.push(l[i++]);else{out.push(fixed?r[j]:r[i]);j++;}}return out.concat(l.slice(i),r.slice(j));}
+const LEFT=[1,3],RIGHT=[1,4];let bps=new Set([9]),T,ti,prevVars=null;
+function dbgReset(){T=trace(LEFT,RIGHT,$('#dFix').checked);ti=0;prevVars=null;dbgDraw('Breakpoint 1, merge (left=[1, 3], right=[1, 4])');}
+function dbgDraw(msg){const st=T[ti];const fixed=$('#dFix').checked;
+  $('#code').innerHTML=SRC.map((l,k)=>{const n=k+1;const txt=fixed&&n===9?'            append result, right[j]':l;return `<div class="cl ${bps.has(n)?'bp':''} ${st.ln===n?'at':''} ${(!fixed&&n===9)?'':''}" data-n="${n}"><span class="no">${n}</span><span class="tx">${esc(txt)}</span></div>`;}).join('');
+  const cur={i:st.i,j:st.j,result:`[${st.result.join(', ')}]`};
+  const rows=[['left','[1, 3]'],['right','[1, 4]'],['i',cur.i],['j',cur.j],['result',cur.result],['left[i]',LEFT[st.i]??'—'],['right[j]',RIGHT[st.j]??'—'],['right[i]',RIGHT[st.i]??'—']];
+  $('#vars').innerHTML='<h5>Locals &amp; watches</h5>'+rows.map(([k,v])=>`<div class="row ${prevVars&&['i','j','result'].includes(k)&&prevVars[k]!==cur[k]?'chg':''}"><span>${k}</span><b>${esc(v)}</b></div>`).join('')+
+   `<h5 style="margin-top:12px">Whole program</h5><div class="row"><span>expected</span><b>[1,1,2,3,4,5,6,9]</b></div><div class="row"><span>got</span><b style="color:${fixed?'var(--green)':'var(--red)'}">[${msort([3,1,4,1,5,9,2,6],fixed)}]</b></div>`;
+  prevVars=cur;
+  $('#gdbline').textContent=(msg?msg+'\n':'')+`${st.ln}\t${(fixed&&st.ln===9?'            append result, right[j]':SRC[st.ln-1]).trim()}`+(st.note?`\n// ${st.note}`:'');
+  $$('#code .no').forEach(n=>n.addEventListener('click',()=>{const k=+n.parentElement.dataset.n;bps.has(k)?bps.delete(k):bps.add(k);dbgDraw();}));}
+$('#dNext').onclick=()=>{if(ti<T.length-1){ti++;dbgDraw();}else dbgDraw('[Inferior 1 (process) exited normally]');};
+$('#dCont').onclick=()=>{let k=ti+1;while(k<T.length&&!bps.has(T[k].ln))k++;if(k>=T.length){ti=T.length-1;dbgDraw('Continuing.\n[Inferior 1 (process) exited normally]');}else{ti=k;dbgDraw('Continuing.\nBreakpoint, line '+T[k].ln);}};
+$('#dReset').onclick=dbgReset;$('#dFix').onchange=dbgReset;
+dbgReset();
+/* jump to the buggy moment for print / first view */
+(function(){const k=T.findIndex(s=>s.ln===9);if(k>0){ti=k;dbgDraw('Breakpoint 1, merge (left=[1, 3], right=[1, 4]) at line 9');}})();
+
+/* 03 rr memory */
+const CELLS=['id','scores[0]','scores[1]','scores[2]','id','scores[0]','scores[1]','scores[2]'];
+const EV=[];const init=[1001,85,92,78,1002,90,88,95];
+init.forEach((v,k)=>EV.push({cell:k,val:v,line:`init(): students[${k<4?0:1}].${CELLS[k]} = ${v};`}));
+EV.push({cell:-1,line:'printf: Student 1: id=1002'});
+for(let i=0;i<4;i++)EV.push({cell:1+i,add:5,line:`curve_scores: i = ${i} → students[0].scores[${i}] += 5;`+(i===3?'   ← scores[3] is past the end of the array: it\'s really students[1].id':'')});
+EV.push({cell:-1,line:'printf: Student 1: id=1007\nERROR: Student 1\'s ID was corrupted! Expected 1002, got 1007'});
+let ei=EV.length-1;
+function memAt(k){const m=Array(8).fill(0);for(let x=0;x<=k;x++){const e=EV[x];if(e.cell<0)continue;if(e.add)m[e.cell]+=e.add;else m[e.cell]=e.val;}return m;}
+function memDraw(msg){const m=memAt(ei),e=EV[ei];const watch=$('#mW').checked;
+  $('#mem').innerHTML=m.map((v,k)=>`<div class="cell ${k<4?'s0':'s1'} ${e.cell===k?'w':''} ${watch&&k===4?'watch':''} ${k===4&&v!==1002&&v!==0?'bad':''}"><small>${CELLS[k]}</small><b>${v||'·'}</b></div>`).join('');
+  $('#tlfill').style.width=((ei+1)/EV.length*100)+'%';
+  $('#memline').textContent=(msg?msg+'\n':'')+`event ${ei+1}/${EV.length}: ${e.line}`;}
+const watched=k=>EV[k].cell===4;
+$('#mS').onclick=()=>{if(ei<EV.length-1)ei++;memDraw();};
+$('#mRS').onclick=()=>{if(ei>0)ei--;memDraw();};
+$('#mC').onclick=()=>{let k=ei+1;if($('#mW').checked)while(k<EV.length-1&&!watched(k))k++;else k=EV.length-1;ei=Math.min(k,EV.length-1);memDraw(watched(ei)?'Hardware watchpoint: students[1].id changed':'Program exited with code 1');};
+$('#mRC').onclick=()=>{if(!$('#mW').checked){ei=0;memDraw('reverse-continue with no watchpoint: back to the start');return;}let k=ei-1;while(k>=0&&!watched(k))k--;
+  if(k<0){memDraw('No earlier write to students[1].id');return;}ei=k;memDraw(EV[k].add?'Hardware watchpoint: students[1].id  Old value = 1002  New value = 1007  ← found the culprit!':'Hardware watchpoint: students[1].id first set in init()');};
+$('#mW').onchange=()=>memDraw();
+memDraw('Program ran to the end. Tick “watch students[1].id”, then press ⏪ reverse-continue.');
+
+/* 08 picker */
+const PK={cpu:['htop','Interactive process list. F6 sorts (e.g. by CPU% or MEM%), t shows the process tree, h toggles threads. btop shows even more.'],
+ io:['sudo iotop','Live read/write rates per process.'],mem:['free -h','Total, used, free and available memory (-h = human-readable).'],
+ files:['lsof /path/to/file','Lists processes holding the file open. Plain lsof lists every open file.'],
+ port:['ss -tlnp | grep :8080','-t TCP · -l listening · -n numeric ports · -p show the owning process (PID). Then kill <PID> if needed.'],
+ net:['sudo nethogs   ·   sudo iftop','nethogs groups bandwidth by process; iftop by connection.']};
+$('#picker').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;$$('#picker button').forEach(x=>x.classList.toggle('on',x===b));const [c,d]=PK[b.dataset.k];$('#pickout').innerHTML=`<div class="t">$ ${esc(c)}</div><div>${esc(d)}</div>`;});
+
+/* 09 vector chart */
+(function(){let cap=1,size=0;const pts=[];for(let n=1;n<=64;n++){let cost=1;if(size===cap){cost+=size;cap*=2;}size++;pts.push(cost);}
+  const W=640,H=180,P=28,bw=(W-P-6)/pts.length,max=Math.max(...pts);
+  let s=`<svg viewBox="0 0 ${W} ${H+24}" role="img" aria-label="Insert cost per append; spikes at powers of two">`;
+  [0,10,20,30].forEach(v=>{const y=H-v/max*(H-10);s+=`<line x1="${P}" x2="${W}" y1="${y}" y2="${y}" stroke="#e3ded2"/><text x="${P-6}" y="${y+4}" font-size="10" text-anchor="end" fill="#5d6763">${v}</text>`;});
+  pts.forEach((c,k)=>{const h=c/max*(H-10);const sp=c>1;s+=`<rect x="${P+k*bw+1}" y="${H-h}" width="${bw-2}" height="${h}" rx="2" fill="${sp?'#c97a12':'#1f7a55'}"><title>insert #${k+1}: cost ${c}</title></rect>`;
+    if([1,2,4,8,16,32,64].includes(k+1))s+=`<text x="${P+k*bw+bw/2}" y="${H+14}" font-size="10" text-anchor="middle" fill="#5d6763">${k+1}</text>`;});
+  s+=`<text x="${W/2}" y="${H+24}" font-size="10" text-anchor="middle" fill="#5d6763">insert number</text></svg>`;$('#vecchart').innerHTML=s;})();
+
+/* 10 flame graph (illustrative) */
+const FG={n:'all',v:1000,c:[{n:'_start',v:998,c:[{n:'__libc_start_main',v:998,c:[{n:'main',v:998,c:[{n:'slow_computation',v:996,c:[{n:'sin',v:452,c:[{n:'__sin_fma',v:430,c:[]}]},{n:'cos',v:371,c:[{n:'__cos_fma',v:350,c:[]}]}]}]}]}]},{n:'[kernel]',v:2,c:[]}]};
+let fgRoot=FG;const fgPath=[];
+function fgDraw(){const box=$('#fg');const W=100;let html='';const rows=[];
+  function walk(n,x,w,d,anc){rows.push({n,x,w,d});let cx=x;n.c.forEach(ch=>{const cw=w*ch.v/n.v;walk(ch,cx,cw,d+1);cx+=cw;});}
+  // ancestors (zoomed-out context) drawn as full width
+  const chain=[...fgPath];chain.forEach((a,k)=>rows.push({n:a,x:0,w:W,d:k,anc:true}));
+  walk(fgRoot,0,W,chain.length);
+  const depth=Math.max(...rows.map(r=>r.d))+1;box.style.height=(depth*28+8)+'px';
+  rows.forEach(r=>{const hue=r.anc?'#d9d3c4':`hsl(${20+((r.n.n.length*37)%35)},${r.n.n==='all'?'15%':'85%'},${r.n.n==='all'?'85%':'62%'})`;const pct=(r.n.v/FG.v*100).toFixed(1);
+    if(r.w<0.3)return;html+=`<div class="f" data-name="${esc(r.n.n)}" data-anc="${r.anc?1:0}" style="left:${r.x}%;width:${r.w}%;bottom:${4+r.d*28}px;background:${hue}" title="${esc(r.n.n)} — ${pct}% of samples">${r.w>7?esc(r.n.n)+' '+pct+'%':''}</div>`;});
+  box.innerHTML=html;
+  $$('.f',box).forEach(el=>el.addEventListener('click',()=>{const nm=el.dataset.name;
+    if(el.dataset.anc==='1'){while(fgPath.length&&fgPath[fgPath.length-1].n!==nm)fgPath.pop();fgRoot=fgPath.pop()||FG;fgDraw();$('#fginfo').textContent='Zoomed out to '+fgRoot.n;return;}
+    const find=(n)=>{if(n.n===nm)return n;for(const ch of n.c){const f=find(ch);if(f)return f;}return null;};const t=find(fgRoot);
+    if(t&&t!==fgRoot){fgPath.push(fgRoot);fgRoot=t;fgDraw();$('#fginfo').textContent=`Zoomed into ${t.n}: ${(t.v/FG.v*100).toFixed(1)}% of all samples. ${t.c.length?'Its children show where that time goes.':'Leaf: time spent in this function itself.'}`;}}));}
+fgDraw();
+
+/* quiz */
+const Q=[
+ {q:'What does logging add over plain print statements?',o:['Nothing — they are identical','Severity levels, configurable destinations and structured fields','Faster programs','Automatic bug fixes'],a:1,e:'Logging frameworks let you filter by level, route output, and attach structured data you can query later.'},
+ {q:'When is a debugger more useful than print debugging?',o:['When you know exactly what to print','When restarting is cheap','When you don\'t know what to look at or the bug is hard to reproduce','Never'],a:2,e:'Debuggers let you explore state interactively without editing and restarting.'},
+ {q:'In gdb, what\'s the difference between <code>step</code> and <code>next</code>?',o:['None','step goes into function calls; next runs them without entering','next goes backwards','step restarts the program'],a:1,e:'step = step in, next = step over, finish = step out.'},
+ {q:'What does <code>watch expr</code> do?',o:['Prints expr once','Stops execution whenever expr\'s value changes','Logs expr to a file','Sets a breakpoint at a line'],a:1,e:'Watchpoints are perfect for “who changed this value?”'},
+ {q:'Why does rr help with Heisenbugs?',o:['It speeds the program up','It records one run and replays it deterministically, even backwards','It adds print statements','It fixes race conditions automatically'],a:1,e:'Once a failing run is recorded you can replay it exactly as often as needed, and reverse-continue to the cause.'},
+ {q:'In <code>corruption.c</code>, why does student 1\'s id change?',o:['A race condition','The loop writes scores[3] — past the 3-element array — which is the next struct\'s id','printf corrupts memory','init() sets the wrong value'],a:1,e:'An off-by-one (i < 4) overflows into adjacent memory. reverse-continue with a watchpoint lands right on that line.'},
+ {q:'Which tool shows the system calls a program makes?',o:['perf stat','strace','hyperfine','htop'],a:1,e:'strace (Linux) / dtruss (macOS). bpftrace when you need lower overhead or aggregation.'},
+ {q:'You can\'t recompile a binary but suspect a memory leak. Use…',o:['AddressSanitizer','Valgrind --leak-check=full','UBSan','gdb -tui'],a:1,e:'Sanitizers need recompilation; Valgrind works on the existing binary (slower).'},
+ {q:'<code>time</code> reports real 0.272 s, user 0.079 s, sys 0.028 s. Most of the time was…',o:['Running your code','Running kernel code','Waiting (e.g. on the network)','Measurement error'],a:2,e:'CPU time is ~0.107 s; the remaining ~0.165 s was waiting.'},
+ {q:'Sampling vs tracing profilers: which is preferred in production, and why?',o:['Tracing — it\'s exact','Sampling — much lower overhead','Tracing — it\'s faster','Neither works in production'],a:1,e:'Sampling profilers (like perf) snapshot the stack periodically, so they barely slow the program.'},
+ {q:'In a flame graph, what does a frame\'s <b>width</b> mean?',o:['When the function ran','How deep the call stack is','The share of samples (time) spent in it and its callees','Memory used'],a:2,e:'Width = proportion of time. Y axis = call stack depth. Order left-to-right is not time.'},
+ {q:'Which finds the process using port 4444?',o:['lsof -p 4444','ss -tlnp | grep 4444','kill 4444','free -h'],a:1,e:'ss lists sockets; -p shows the owning process.'}];
+const qb=$('#quizbox');let answered={};
+function drawQuiz(){qb.innerHTML=Q.map((x,i)=>`<div class="q" data-i="${i}"><div class="qt">${i+1}. ${x.q}</div><div class="opts">${x.o.map((o,j)=>`<button class="opt" data-j="${j}" ${j===x.a?'data-right':''}>${String.fromCharCode(65+j)}. ${o}</button>`).join('')}</div><div class="ex">💡 ${x.e}</div></div>`).join('');answered={};score();}
+function score(){const n=Object.keys(answered).length,c=Object.values(answered).filter(Boolean).length;$('#score').textContent=`${c} / ${n}`+(n===Q.length?` — ${c>=10?'great work!':c>=6?'solid, review the misses':'re-read the sections you missed'}`:'');}
+qb.addEventListener('click',e=>{const b=e.target.closest('button.opt');if(!b)return;const q=b.closest('.q'),i=+q.dataset.i;if(q.classList.contains('done'))return;
+  const ok=+b.dataset.j===Q[i].a;b.classList.add(ok?'right':'wrong');if(!ok)q.querySelector('[data-right]').classList.add('right');q.classList.add('done');answered[i]=ok;score();});
+$('#quizReset').onclick=drawQuiz;drawQuiz();
+
+/* exercises */
+const EX=[['Debugging',[
+  ['Implement the lecture\'s buggy merge sort in any language and use a debugger to find the bug. Test: <code>[3,1,4,1,5,9,2,6]</code> → <code>[1,1,2,3,4,5,6,9]</code>.','Break inside merge and watch which element gets appended in the else branch (section 02 shows it).'],
+  ['Install rr and find the corruption in <code>corruption.c</code>: <code>rr record</code>, <code>rr replay</code>, watch <code>students[1].id</code>, then <code>reverse-continue</code>.','Compile with <code>gcc -g corruption.c -o corruption</code>.'],
+  ['Compile <code>uaf.c</code> normally (it may seem to work), then with <code>-fsanitize=address -g</code>. What does ASan report? Fix it.','Look at what the program does to <code>greeting</code> after <code>free</code>.'],
+  ['strace (or dtruss) <code>ls -l</code>. Which system calls does it make? Trace something bigger and see which files it opens.','<code>strace -e trace=file</code> narrows it down.'],
+  ['Paste a cryptic compiler error (C++ templates, Rust), strace output or an ASan report into an LLM and ask for an explanation and fix.','Then verify the suggestion yourself.']]],
+ ['Profiling',[
+  ['Run <code>perf stat</code> on a program. What does each counter mean?',''],
+  ['Compile <code>slow.c</code> with <code>gcc -g -O2 slow.c -o slow -lm</code>, run <code>perf record -g ./slow</code>, then <code>perf report</code>. Make a flame graph.','Section 10 has the flame-graph pipeline.'],
+  ['Benchmark two implementations with hyperfine (find vs fd, grep vs ripgrep, or your own code).','Add <code>--warmup 3</code>.'],
+  ['Watch htop while running something heavy. Try <code>taskset --cpu-list 0,2 stress -c 3</code>. Why doesn\'t stress use three CPUs?','taskset pins the process to the listed CPUs.'],
+  ['Start <code>python -m http.server 4444</code>, find it with <code>ss -tlnp | grep 4444</code> from another terminal, and kill it.','']]]];
+let done={};try{done=JSON.parse(localStorage.getItem('l4notes-ex')||'{}');}catch(e){}
+let k=0;$('#exlist').innerHTML=EX.map(([g,items])=>`<div class="exgroup"><h4>${g}</h4>${items.map(([t,h])=>{const id='e'+(k++);return `<div class="ex-item ${done[id]?'checked':''}" data-id="${id}"><input type="checkbox" ${done[id]?'checked':''} aria-label="done"><div><div class="t">${k}. ${t}</div>${h?`<button class="hintbtn">Show hint</button><div class="h">💡 ${h}</div>`:''}</div></div>`;}).join('')}</div>`).join('');
+function exProg(){const n=$$('.ex-item input:checked').length;$('#exfill').style.width=(n/k*100)+'%';$('#excount').textContent=`${n} of ${k} done`;}
+$('#exlist').addEventListener('change',e=>{const it=e.target.closest('.ex-item');it.classList.toggle('checked',e.target.checked);done[it.dataset.id]=e.target.checked;try{localStorage.setItem('l4notes-ex',JSON.stringify(done));}catch(err){}exProg();});
+$('#exlist').addEventListener('click',e=>{if(!e.target.classList.contains('hintbtn'))return;const it=e.target.closest('.ex-item');it.classList.toggle('showhint');e.target.textContent=it.classList.contains('showhint')?'Hide hint':'Show hint';});
+exProg();
+})();
+</script>
+</body>
+</html>
