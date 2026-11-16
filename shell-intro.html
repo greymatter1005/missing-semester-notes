@@ -216,6 +216,9 @@ td code{white-space:nowrap}
 .linkbanner{border:1.5px solid var(--green);background:var(--green-soft);border-radius:12px;padding:12px 16px;margin:0 0 14px;font-size:13px}
 .linkbanner a{color:var(--green)!important;font-family:var(--mono);font-weight:600;text-decoration:underline!important}
 .linkbanner .lb-ic{float:left;margin-right:12px;width:28px;height:28px;border-radius:50%;background:var(--green);color:#fff;text-align:center;line-height:28px;font-size:12px}
+.topnav{display:flex;justify-content:space-between;gap:10px;font-size:13px;padding:10px 2px 0}
+.topnav a{color:var(--muted);text-decoration:none;border:1px solid var(--line);border-radius:99px;padding:4px 12px;background:#fff}
+.topnav a:hover{color:var(--ink);border-color:var(--green)}
 footer{font-size:13px;color:var(--muted);text-align:center;padding:10px}
 .print-only{display:none}
 .ptyped{display:none}
@@ -284,7 +287,8 @@ footer{font-size:13px;color:var(--muted);text-align:center;padding:10px}
   </nav>
 
 <main>
-  <header class="hero">
+  <div class="topnav no-print"><a href="index.html">← All notes</a><a href="command-line-env.html">Lecture 2: Command-line Environment →</a></div>
+  <header class="hero" style="margin-top:10px">
     <div class="kicker">MIT · The Missing Semester of Your CS Education · 2026 · Lecture 1</div>
     <h1>Introduction to the Shell</h1>
     <p>Study notes: what the shell is, how to move around, the core text-processing tools, and the bash basics you need to start chaining programs together.</p>
